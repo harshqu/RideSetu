@@ -24,10 +24,6 @@ if (!global.mongooseCache) {
 }
 
 export async function connectToDatabase(): Promise<typeof mongoose> {
-  if (mongoose.connection.readyState === 1) {
-    return mongoose;
-  }
-
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     throw new Error(
@@ -35,32 +31,39 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
     );
   }
 
-  const maxRetries = 3;
-  let attempt = 0;
-
-  while (attempt < maxRetries) {
-    attempt++;
-    try {
-      const conn = await mongoose.connect(uri, {
-        dbName: 'ridesetu',
-        serverSelectionTimeoutMS: 20000,
-        connectTimeoutMS: 20000,
-        family: 4,
-      });
-      cached.conn = conn;
-      return cached.conn;
-    } catch (err: any) {
-      cached.conn = null;
-      if (attempt >= maxRetries) {
-        const safeReason = err instanceof Error ? err.name + ': ' + err.message.replace(/mongodb\+srv:\/\/[^@]+@/, 'mongodb+srv://***:***@') : 'Database connection error';
-        console.error('[MongoDB] Connection error:', safeReason);
-        throw err;
-      }
-      await new Promise((r) => setTimeout(r, 1500));
-    }
+  if (cached.conn && mongoose.connection.readyState === 1) {
+    return cached.conn;
   }
 
-  throw new Error('Could not connect to MongoDB Atlas');
+  if (!cached.promise) {
+    const opts: mongoose.ConnectOptions = {
+      dbName: 'ridesetu',
+      serverSelectionTimeoutMS: 15000,
+      bufferCommands: true,
+      autoSelectFamily: false,
+    };
+
+    cached.promise = mongoose.connect(uri, opts).then((m) => {
+      cached.conn = m;
+      return m;
+    }).catch((err) => {
+      cached.promise = null;
+      cached.conn = null;
+      const safeReason = err instanceof Error ? err.name + ': ' + err.message.replace(/mongodb\+srv:\/\/[^@]+@/, 'mongodb+srv://***:***@') : 'Database connection error';
+      console.error('[MongoDB] Connection error:', safeReason);
+      throw err;
+    });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    cached.conn = null;
+    throw e;
+  }
+
+  return cached.conn;
 }
 
 export default connectToDatabase;

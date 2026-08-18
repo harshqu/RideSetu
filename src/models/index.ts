@@ -16,3 +16,6 @@ export * from './SupportTicket';
 export * from './Notification';
 export * from './Favorite';
 export * from './AuditLog';
+export * from './ReservationLock';
+export * from './CustomerSavedLocation';
+export * from './VendorPayoutProfile';

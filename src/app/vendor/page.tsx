@@ -30,6 +30,18 @@ export default function VendorDashboardPage() {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'BOOKINGS' | 'FLEET' | 'CALENDAR' | 'PAYOUTS'>('BOOKINGS');
+  const [payoutProfile, setPayoutProfile] = useState<any>(null);
+  const [payoutsList, setPayoutsList] = useState<any[]>([]);
+  const [payoutFormMethod, setPayoutFormMethod] = useState<'BANK_ACCOUNT' | 'UPI'>('BANK_ACCOUNT');
+  const [beneficiaryName, setBeneficiaryName] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [confirmAccountNumber, setConfirmAccountNumber] = useState('');
+  const [ifscCode, setIfscCode] = useState('');
+  const [upiId, setUpiId] = useState('');
+  const [accountType, setAccountType] = useState<'SAVINGS' | 'CURRENT'>('CURRENT');
+  const [savingPayout, setSavingPayout] = useState(false);
+  const [payoutMessage, setPayoutMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Inspection Modal State
   const [inspectionModal, setInspectionModal] = useState<{
@@ -50,10 +62,11 @@ export default function VendorDashboardPage() {
   const loadVendorData = async () => {
     try {
       setLoading(true);
-      const [metRes, bookRes, vehRes] = await Promise.all([
+      const [metRes, bookRes, vehRes, payProfRes] = await Promise.all([
         fetch('/api/vendor/metrics'),
         fetch('/api/bookings'),
         fetch('/api/vehicles?limit=50'),
+        fetch('/api/vendor/payout-profile'),
       ]);
 
       const metData = await metRes.json();
@@ -63,10 +76,57 @@ export default function VendorDashboardPage() {
       if (metData.metrics) setMetrics(metData.metrics);
       if (bookData.bookings) setBookings(bookData.bookings);
       if (vehData.vehicles) setVehicles(vehData.vehicles);
+
+      if (payProfRes.ok) {
+        const profData = await payProfRes.json();
+        if (profData.exists && profData.profile) {
+          setPayoutProfile(profData.profile);
+          setBeneficiaryName(profData.profile.beneficiaryName || '');
+          setBankName(profData.profile.bankName || '');
+          setIfscCode(profData.profile.ifscCode || '');
+          setPayoutFormMethod(profData.profile.payoutMethod || 'BANK_ACCOUNT');
+        }
+      }
     } catch (err) {
       console.error('Vendor data load error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSavePayoutProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingPayout(true);
+    setPayoutMessage(null);
+    try {
+      const res = await fetch('/api/vendor/payout-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          beneficiaryName,
+          payoutMethod: payoutFormMethod,
+          bankName,
+          accountNumber,
+          confirmAccountNumber,
+          ifscCode,
+          upiId,
+          accountType,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save payout profile');
+      }
+
+      setPayoutProfile(data.profile);
+      setAccountNumber('');
+      setConfirmAccountNumber('');
+      setPayoutMessage({ type: 'success', text: data.message || 'Payout details saved & encrypted successfully.' });
+    } catch (err: any) {
+      setPayoutMessage({ type: 'error', text: err.message || 'Failed to save payout details' });
+    } finally {
+      setSavingPayout(false);
     }
   };
 
@@ -438,6 +498,207 @@ export default function VendorDashboardPage() {
               Block Selected Dates
             </button>
           </form>
+        </div>
+      )}
+
+      {/* TAB 4: Payout & Bank Details */}
+      {activeTab === 'PAYOUTS' && (
+        <div className="space-y-6 max-w-4xl">
+          {/* Header Card */}
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base font-heading">
+                  Vendor Payout Settings & Settlement Account
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Direct automated settlements for completed vehicle rentals. Protected with enterprise AES-256-GCM encryption.
+                </p>
+              </div>
+              {payoutProfile ? (
+                <span
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                    payoutProfile.verificationStatus === 'VERIFIED'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      : 'bg-amber-100 text-amber-800 border border-amber-200'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {payoutProfile.verificationStatus}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+                  Not Configured
+                </span>
+              )}
+            </div>
+
+            {/* Current Masked Account Display */}
+            {payoutProfile && (
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div>
+                  <span className="text-slate-400 font-semibold block text-[11px]">Beneficiary Name</span>
+                  <span className="font-bold text-slate-900">{payoutProfile.beneficiaryName}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-semibold block text-[11px]">
+                    {payoutProfile.payoutMethod === 'BANK_ACCOUNT' ? 'Masked Bank Account' : 'Masked UPI VPA'}
+                  </span>
+                  <span className="font-mono font-bold text-slate-900">
+                    {payoutProfile.maskedAccountNumber || payoutProfile.upiId || '•••• •••• ••••'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-semibold block text-[11px]">
+                    {payoutProfile.payoutMethod === 'BANK_ACCOUNT' ? 'IFSC Code' : 'Settlement Mode'}
+                  </span>
+                  <span className="font-mono font-bold text-slate-900">
+                    {payoutProfile.ifscCode || payoutProfile.payoutMethod}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {payoutMessage && (
+              <div
+                className={`p-3.5 rounded-xl text-xs flex items-center gap-2 ${
+                  payoutMessage.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'bg-red-50 text-red-800 border border-red-200'
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{payoutMessage.text}</span>
+              </div>
+            )}
+
+            {/* Payout Configuration Form */}
+            <form onSubmit={handleSavePayoutProfile} className="space-y-4 text-xs pt-2">
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPayoutFormMethod('BANK_ACCOUNT')}
+                  className={`flex-1 p-3 rounded-xl border text-center font-bold transition-all ${
+                    payoutFormMethod === 'BANK_ACCOUNT'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500/20'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  Bank Account (NEFT / IMPS)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPayoutFormMethod('UPI')}
+                  className={`flex-1 p-3 rounded-xl border text-center font-bold transition-all ${
+                    payoutFormMethod === 'UPI'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500/20'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  Instant UPI ID (VPA)
+                </button>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Registered Beneficiary / Account Holder Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={beneficiaryName}
+                  onChange={(e) => setBeneficiaryName(e.target.value)}
+                  placeholder="e.g. Ramesh Chandra / Himalayan Wheels Pvt Ltd"
+                  className="w-full p-2.5 border border-slate-200 rounded-xl outline-none"
+                />
+              </div>
+
+              {payoutFormMethod === 'BANK_ACCOUNT' ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Bank Name</label>
+                      <input
+                        type="text"
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                        placeholder="e.g. HDFC Bank / State Bank of India"
+                        className="w-full p-2.5 border border-slate-200 rounded-xl outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Account Type</label>
+                      <select
+                        value={accountType}
+                        onChange={(e) => setAccountType(e.target.value as any)}
+                        className="w-full p-2.5 border border-slate-200 rounded-xl outline-none"
+                      >
+                        <option value="CURRENT">Current Account</option>
+                        <option value="SAVINGS">Savings Account</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Bank Account Number *</label>
+                      <input
+                        type="password"
+                        required
+                        value={accountNumber}
+                        onChange={(e) => setAccountNumber(e.target.value)}
+                        placeholder="Enter full 9-18 digit account number"
+                        className="w-full p-2.5 border border-slate-200 rounded-xl outline-none font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Confirm Account Number *</label>
+                      <input
+                        type="text"
+                        required
+                        value={confirmAccountNumber}
+                        onChange={(e) => setConfirmAccountNumber(e.target.value)}
+                        placeholder="Re-enter bank account number"
+                        className="w-full p-2.5 border border-slate-200 rounded-xl outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Bank IFSC Code *</label>
+                    <input
+                      type="text"
+                      required
+                      value={ifscCode}
+                      onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+                      placeholder="e.g. HDFC0001234 / SBIN0000456"
+                      className="w-full p-2.5 border border-slate-200 rounded-xl outline-none font-mono uppercase"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">UPI ID / Virtual Payment Address *</label>
+                  <input
+                    type="text"
+                    required
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value.toLowerCase())}
+                    placeholder="e.g. partner.ridesetu@okhdfcbank"
+                    className="w-full p-2.5 border border-slate-200 rounded-xl outline-none font-mono lowercase"
+                  />
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={savingPayout}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md disabled:opacity-75"
+                >
+                  {savingPayout ? 'Encrypting & Saving Credentials...' : 'Save & Verify Payout Profile'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

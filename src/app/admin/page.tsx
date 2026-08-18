@@ -23,26 +23,71 @@ export default function AdminControlPage() {
   const { user } = useAuth();
   const [metrics, setMetrics] = useState<any>(null);
   const [disputes, setDisputes] = useState<any[]>([]);
+  const [payouts, setPayouts] = useState<any[]>([]);
+  const [payoutSummary, setPayoutSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'METRICS' | 'DISPUTES' | 'COMMISSIONS'>('METRICS');
+  const [activeTab, setActiveTab] = useState<'METRICS' | 'DISPUTES' | 'PAYOUTS' | 'COMMISSIONS'>('METRICS');
+  const [actionLoading, setActionLoading] = useState(false);
 
   const loadAdminData = async () => {
     try {
       setLoading(true);
-      const [metRes, dispRes] = await Promise.all([
+      const [metRes, dispRes, payRes] = await Promise.all([
         fetch('/api/admin/metrics'),
         fetch('/api/disputes'),
+        fetch('/api/admin/payouts'),
       ]);
 
       const metData = await metRes.json();
       const dispData = await dispRes.json();
+      const payData = await payRes.json();
 
       if (metData.metrics) setMetrics(metData.metrics);
       if (dispData.disputes) setDisputes(dispData.disputes);
+      if (payData.payouts) {
+        setPayouts(payData.payouts);
+        setPayoutSummary(payData.summary);
+      }
     } catch (err) {
       console.error('Admin data load error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdatePayoutStatus = async (payoutId: string, status: string, reason?: string) => {
+    try {
+      setActionLoading(true);
+      const res = await fetch('/api/admin/payouts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payoutId, status, reason }),
+      });
+      if (res.ok) {
+        await loadAdminData();
+      }
+    } catch (err) {
+      console.error('Update payout status error:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleExecutePayout = async (payoutId: string) => {
+    try {
+      setActionLoading(true);
+      const res = await fetch('/api/admin/payouts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payoutId }),
+      });
+      const data = await res.json();
+      alert(data.message || 'Payout transfer initiated.');
+      await loadAdminData();
+    } catch (err: any) {
+      alert(err.message || 'Payout transfer failed.');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -137,7 +182,7 @@ export default function AdminControlPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 text-xs font-bold">
+      <div className="flex border-b border-slate-200 text-xs font-bold gap-2">
         <button
           onClick={() => setActiveTab('METRICS')}
           className={`pb-3 px-4 border-b-2 transition-colors ${
@@ -147,6 +192,16 @@ export default function AdminControlPage() {
           }`}
         >
           Marketplace Health & Economics
+        </button>
+        <button
+          onClick={() => setActiveTab('PAYOUTS')}
+          className={`pb-3 px-4 border-b-2 transition-colors ${
+            activeTab === 'PAYOUTS'
+              ? 'border-brand-orange text-brand-orange'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          Vendor Payouts & Settlements ({payouts.length})
         </button>
         <button
           onClick={() => setActiveTab('DISPUTES')}
@@ -159,6 +214,149 @@ export default function AdminControlPage() {
           Dispute & Damage Arbitration ({disputes.length})
         </button>
       </div>
+
+      {/* TAB: Vendor Payouts & Settlements */}
+      {activeTab === 'PAYOUTS' && (
+        <div className="space-y-6">
+          {/* Payout Summary Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase">Settled / Paid</span>
+              <div className="text-xl font-black text-emerald-600">
+                {formatINR(payoutSummary?.totalPaid || 0)}
+              </div>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase">Eligible for Transfer</span>
+              <div className="text-xl font-black text-blue-600">
+                {formatINR(payoutSummary?.totalEligible || 0)}
+              </div>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase">Compliance On Hold</span>
+              <div className="text-xl font-black text-amber-600">
+                {formatINR(payoutSummary?.totalOnHold || 0)}
+              </div>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase">Platform Commissions</span>
+              <div className="text-xl font-black text-navy-900">
+                {formatINR(payoutSummary?.totalCommissions || 0)}
+              </div>
+            </div>
+          </div>
+
+          {/* Payouts Audit Table */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base font-heading">Vendor Payout Ledger & Audit Logs</h3>
+                <p className="text-xs text-slate-500">Every hold, release, and transfer creates an immutable AuditLog record.</p>
+              </div>
+            </div>
+
+            {payouts.length === 0 ? (
+              <div className="p-12 text-center text-slate-400 text-sm">
+                No vendor payouts generated yet. Payouts are generated upon ride completion.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase text-[10px]">
+                    <tr>
+                      <th className="p-4">Vendor Partner</th>
+                      <th className="p-4">Booking Ref</th>
+                      <th className="p-4">Gross Eligible</th>
+                      <th className="p-4">Commission</th>
+                      <th className="p-4">Net Payout</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {payouts.map((p) => (
+                      <tr key={p._id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="p-4">
+                          <div className="font-bold text-slate-900">{p.vendorId?.businessName || 'Partner'}</div>
+                          <div className="text-[11px] text-slate-400 font-mono">{p.bankAccountRef || 'Bank Account'}</div>
+                        </td>
+                        <td className="p-4 font-mono font-medium text-slate-700">
+                          {p.bookingId?.bookingNumber || 'BKG-REF'}
+                        </td>
+                        <td className="p-4 font-semibold text-slate-800">{formatINR(p.grossAmount)}</td>
+                        <td className="p-4 text-slate-500">
+                          {formatINR(p.platformCommission)} ({p.commissionPercentage}%)
+                        </td>
+                        <td className="p-4 font-black text-emerald-700 font-heading text-sm">
+                          {formatINR(p.netAmount)}
+                        </td>
+                        <td className="p-4">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
+                              p.status === 'PAID'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : p.status === 'ELIGIBLE'
+                                ? 'bg-blue-100 text-blue-800'
+                                : p.status === 'ON_HOLD'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {p.status}
+                          </span>
+                          {p.holdReason && (
+                            <div className="text-[10px] text-amber-700 mt-0.5 max-w-xs truncate">{p.holdReason}</div>
+                          )}
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {p.status === 'ELIGIBLE' && (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={actionLoading}
+                                  onClick={() => handleExecutePayout(p._id)}
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700"
+                                >
+                                  Execute Transfer
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={actionLoading}
+                                  onClick={() => {
+                                    const r = prompt('Reason for placing payout on compliance hold:', 'Documentation verification');
+                                    if (r) handleUpdatePayoutStatus(p._id, 'ON_HOLD', r);
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg border border-amber-300 text-amber-800 bg-amber-50 font-bold text-[11px]"
+                                >
+                                  Hold
+                                </button>
+                              </>
+                            )}
+                            {p.status === 'ON_HOLD' && (
+                              <button
+                                type="button"
+                                disabled={actionLoading}
+                                onClick={() => handleUpdatePayoutStatus(p._id, 'ELIGIBLE', 'Compliance verification cleared')}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px]"
+                              >
+                                Release Hold
+                              </button>
+                            )}
+                            {p.status === 'PAID' && (
+                              <span className="text-[11px] font-mono text-emerald-700">Settled ✓</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* TAB 1: Economics */}
       {activeTab === 'METRICS' && (

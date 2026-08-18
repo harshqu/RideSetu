@@ -29,6 +29,25 @@ export interface CreateBookingDTO {
     phone: string;
     relation: string;
   };
+  deliveryLocation?: {
+    locationType?: 'VENDOR_PICKUP' | 'DOORSTEP' | 'HOTEL' | 'HOSTEL' | 'OTHER';
+    locationSource?: 'CURRENT_LOCATION' | 'GOOGLE_PLACE' | 'MAP_PIN' | 'MANUAL';
+    address?: string;
+    houseOrRoom?: string;
+    buildingName?: string;
+    landmark?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    pincode?: string;
+    latitude?: number;
+    longitude?: number;
+    placeId?: string;
+    formattedAddress?: string;
+    contactName?: string;
+    contactPhone?: string;
+    deliveryInstructions?: string;
+  };
   couponCode?: string;
   paymentMethod?: 'UPI' | 'CARD' | 'NETBANKING' | 'WALLET';
   razorpayOrderId?: string;
@@ -89,7 +108,7 @@ export class BookingService {
       const bookingNumber = generateBookingNumber();
       const providerOrderId = dto.razorpayOrderId || `order_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
-      const bookingData = {
+      const bookingData: Record<string, unknown> = {
         bookingNumber,
         customerId: new mongoose.Types.ObjectId(dto.customerId),
         vendorId: vehicle.vendorId,
@@ -117,6 +136,28 @@ export class BookingService {
         emergencyContact: dto.emergencyContact,
         couponCode: dto.couponCode || '',
       };
+
+      if (dto.deliveryLocation) {
+        bookingData.deliveryLocation = {
+          locationType: dto.deliveryLocation.locationType || 'DOORSTEP',
+          locationSource: dto.deliveryLocation.locationSource || 'MANUAL',
+          address: dto.deliveryLocation.address || dto.pickupLocation,
+          houseOrRoom: dto.deliveryLocation.houseOrRoom || '',
+          buildingName: dto.deliveryLocation.buildingName || '',
+          landmark: dto.deliveryLocation.landmark || '',
+          city: dto.deliveryLocation.city || 'Rishikesh',
+          state: dto.deliveryLocation.state || 'Uttarakhand',
+          country: dto.deliveryLocation.country || 'India',
+          pincode: dto.deliveryLocation.pincode || '',
+          latitude: dto.deliveryLocation.latitude,
+          longitude: dto.deliveryLocation.longitude,
+          placeId: dto.deliveryLocation.placeId || '',
+          formattedAddress: dto.deliveryLocation.formattedAddress || dto.pickupLocation,
+          contactName: dto.deliveryLocation.contactName || dto.customerDetails.fullName,
+          contactPhone: dto.deliveryLocation.contactPhone || dto.customerDetails.phone,
+          deliveryInstructions: dto.deliveryLocation.deliveryInstructions || '',
+        };
+      }
 
       const createdBooking = await Booking.create(bookingData);
 

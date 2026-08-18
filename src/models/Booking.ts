@@ -1,4 +1,8 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
+import './User';
+import './Vehicle';
+import './Vendor';
+import './Destination';
 
 export type PickupType =
   | 'VENDOR_PICKUP'
@@ -65,6 +69,25 @@ export interface IBooking extends Document {
     name: string;
     phone: string;
     relation: string;
+  };
+  deliveryLocation?: {
+    locationType: 'VENDOR_PICKUP' | 'DOORSTEP' | 'HOTEL' | 'HOSTEL' | 'OTHER';
+    locationSource: 'CURRENT_LOCATION' | 'GOOGLE_PLACE' | 'MAP_PIN' | 'MANUAL';
+    address: string;
+    houseOrRoom?: string;
+    buildingName?: string;
+    landmark?: string;
+    city: string;
+    state?: string;
+    country?: string;
+    pincode?: string;
+    latitude?: number;
+    longitude?: number;
+    placeId?: string;
+    formattedAddress?: string;
+    contactName?: string;
+    contactPhone?: string;
+    deliveryInstructions?: string;
   };
   couponCode?: string;
   handoverPickupId?: mongoose.Types.ObjectId;
@@ -135,6 +158,33 @@ const BookingSchema = new Schema<IBooking>(
       name: { type: String, default: '' },
       phone: { type: String, default: '' },
       relation: { type: String, default: '' },
+    },
+    deliveryLocation: {
+      locationType: {
+        type: String,
+        enum: ['VENDOR_PICKUP', 'DOORSTEP', 'HOTEL', 'HOSTEL', 'OTHER'],
+        default: 'VENDOR_PICKUP',
+      },
+      locationSource: {
+        type: String,
+        enum: ['CURRENT_LOCATION', 'GOOGLE_PLACE', 'MAP_PIN', 'MANUAL'],
+        default: 'MANUAL',
+      },
+      address: { type: String, default: '' },
+      houseOrRoom: { type: String, default: '' },
+      buildingName: { type: String, default: '' },
+      landmark: { type: String, default: '' },
+      city: { type: String, default: '' },
+      state: { type: String, default: 'Uttarakhand' },
+      country: { type: String, default: 'India' },
+      pincode: { type: String, default: '' },
+      latitude: { type: Number },
+      longitude: { type: Number },
+      placeId: { type: String, default: '' },
+      formattedAddress: { type: String, default: '' },
+      contactName: { type: String, default: '' },
+      contactPhone: { type: String, default: '' },
+      deliveryInstructions: { type: String, default: '' },
     },
     couponCode: { type: String, default: '' },
     handoverPickupId: { type: Schema.Types.ObjectId, ref: 'DigitalHandoverReport' },

@@ -1,4 +1,6 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
+import './Vendor';
+import './Destination';
 
 export type VehicleCategory = 'SCOOTER' | 'MOTORCYCLE' | 'CAR' | 'EV';
 export type FuelType = 'PETROL' | 'DIESEL' | 'ELECTRIC' | 'HYBRID' | 'CNG';

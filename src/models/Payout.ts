@@ -1,6 +1,13 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
-export type PayoutStatus = 'PENDING' | 'PROCESSING' | 'PAID' | 'FAILED';
+export type PayoutStatus =
+  | 'PENDING'
+  | 'ELIGIBLE'
+  | 'ON_HOLD'
+  | 'PROCESSING'
+  | 'PAID'
+  | 'FAILED'
+  | 'REVERSED';
 
 export interface IPayout extends Document {
   _id: mongoose.Types.ObjectId;
@@ -12,17 +19,23 @@ export interface IPayout extends Document {
   taxes: number;
   netAmount: number;
   status: PayoutStatus;
+  idempotencyKey?: string;
+  provider: 'MOCK' | 'RAZORPAY';
   providerReference?: string;
+  providerTransferId?: string;
   bankAccountRef?: string;
+  holdReason?: string;
   notes?: string;
-  createdAt: Date;
+  settlementDate?: Date;
   paidAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const PayoutSchema = new Schema<IPayout>(
   {
     vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor', required: true, index: true },
-    bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', required: true, index: true },
+    bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', required: true, unique: true, index: true },
     grossAmount: { type: Number, required: true },
     platformCommission: { type: Number, required: true },
     commissionPercentage: { type: Number, required: true, default: 15 },
@@ -30,13 +43,18 @@ const PayoutSchema = new Schema<IPayout>(
     netAmount: { type: Number, required: true },
     status: {
       type: String,
-      enum: ['PENDING', 'PROCESSING', 'PAID', 'FAILED'],
+      enum: ['PENDING', 'ELIGIBLE', 'ON_HOLD', 'PROCESSING', 'PAID', 'FAILED', 'REVERSED'],
       default: 'PENDING',
       index: true,
     },
+    idempotencyKey: { type: String, unique: true, sparse: true },
+    provider: { type: String, enum: ['MOCK', 'RAZORPAY'], default: 'MOCK' },
     providerReference: { type: String, default: '' },
+    providerTransferId: { type: String, default: '' },
     bankAccountRef: { type: String, default: '' },
+    holdReason: { type: String, default: '' },
     notes: { type: String, default: '' },
+    settlementDate: { type: Date },
     paidAt: { type: Date },
   },
   {

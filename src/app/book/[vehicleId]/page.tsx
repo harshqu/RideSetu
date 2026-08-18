@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import PriceBreakdownCard from '@/components/booking/PriceBreakdownCard';
 import PaymentModal from '@/components/booking/PaymentModal';
 import BookingVoucherCard from '@/components/booking/BookingVoucherCard';
+import DeliveryLocationSelector, { DeliveryLocationData } from '@/components/booking/DeliveryLocationSelector';
 import { formatINR } from '@/lib/utils';
 import {
   Calendar,
@@ -54,6 +55,8 @@ function BookingFlowContent() {
   const [pickupType, setPickupType] = useState<string>('VENDOR_PICKUP');
   const [pickupLocation, setPickupLocation] = useState('Vendor Shop Hub');
   const [hotelAddress, setHotelAddress] = useState('');
+  const [deliveryLocationData, setDeliveryLocationData] = useState<DeliveryLocationData | null>(null);
+  const [savedLocations, setSavedLocations] = useState<any[]>([]);
 
   const [fullName, setFullName] = useState(user?.name || 'Aarav Sharma');
   const [phone, setPhone] = useState(user?.phone || '+91 98765 43210');
@@ -68,7 +71,7 @@ function BookingFlowContent() {
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch Vehicle
+  // Fetch Vehicle and Saved Locations
   useEffect(() => {
     const fetchVehicle = async () => {
       try {
@@ -85,7 +88,22 @@ function BookingFlowContent() {
       }
     };
 
-    if (vehicleId) fetchVehicle();
+    const fetchSavedLocations = async () => {
+      try {
+        const res = await fetch('/api/customer/saved-locations');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.locations) setSavedLocations(data.locations);
+        }
+      } catch {
+        // Silently continue if customer not logged in
+      }
+    };
+
+    if (vehicleId) {
+      fetchVehicle();
+      fetchSavedLocations();
+    }
   }, [vehicleId]);
 
   // Recalculate Pricing via Server Endpoint
@@ -156,6 +174,8 @@ function BookingFlowContent() {
 
     try {
       setError(null);
+      const pickupLoc = deliveryLocationData?.formattedAddress || (pickupType === 'HOTEL_DELIVERY' ? hotelAddress : pickupLocation);
+
       const res = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -164,8 +184,9 @@ function BookingFlowContent() {
           pickupDateTime: `${pickupDate}T${pickupTime}:00`,
           returnDateTime: `${returnDate}T${returnTime}:00`,
           pickupType,
-          pickupLocation: pickupType === 'HOTEL_DELIVERY' ? hotelAddress : pickupLocation,
-          dropoffLocation: pickupType === 'HOTEL_DELIVERY' ? hotelAddress : pickupLocation,
+          pickupLocation: pickupLoc,
+          dropoffLocation: pickupLoc,
+          deliveryLocation: deliveryLocationData || undefined,
           customerDetails: {
             fullName,
             phone,
@@ -347,56 +368,27 @@ function BookingFlowContent() {
                 </div>
               </div>
 
-              {/* Delivery Fulfillment Options */}
-              <div className="space-y-2 text-xs">
-                <label className="font-bold text-slate-800 uppercase tracking-wider text-[10px]">
-                  Select Pickup & Handover Method
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[
-                    { id: 'VENDOR_PICKUP', title: 'Pickup at Partner Hub', desc: 'Visit vendor shop in Tapovan (₹0 Fee)', icon: '🏬' },
-                    { id: 'HOTEL_DELIVERY', title: 'Doorstep Hotel / Hostel', desc: 'Delivered to your reception (₹120 Fee)', icon: '🏨' },
-                    { id: 'STATION_DELIVERY', title: 'Railway Station Delivery', desc: 'Handover at platform exit (₹120 Fee)', icon: '🚉' },
-                    { id: 'AIRPORT_DELIVERY', title: 'Jolly Grant Airport Drop', desc: 'Arrivals terminal gate (₹250 Fee)', icon: '✈️' },
-                  ].map((mode) => (
-                    <label
-                      key={mode.id}
-                      className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 ${
-                        pickupType === mode.id
-                          ? 'border-brand-orange bg-brand-light font-bold text-brand-dark shadow-sm'
-                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                      }`}
-                    >
-                      <span className="text-xl">{mode.icon}</span>
-                      <div className="flex-1">
-                        <div className="font-bold text-slate-900">{mode.title}</div>
-                        <div className="text-[11px] text-slate-500 font-normal">{mode.desc}</div>
-                      </div>
-                      <input
-                        type="radio"
-                        name="pickupType"
-                        checked={pickupType === mode.id}
-                        onChange={() => setPickupType(mode.id)}
-                        className="hidden"
-                      />
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {pickupType !== 'VENDOR_PICKUP' && (
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1 text-xs">
-                  <label className="font-bold text-slate-700">Specific Delivery Address / Hotel Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Zostel Tapovan, Main Badrinath Highway, Rishikesh"
-                    value={hotelAddress}
-                    onChange={(e) => setHotelAddress(e.target.value)}
-                    className="w-full p-2.5 bg-white border border-slate-300 rounded-xl outline-none"
-                  />
-                </div>
-              )}
+              {/* Google Maps Delivery & Pickup Location Selector */}
+              <DeliveryLocationSelector
+                destinationCity={vehicle?.destinationId?.city || 'Rishikesh'}
+                initialType={pickupType}
+                baseDeliveryFee={120}
+                vendorDeliveryRadiusKm={15}
+                savedLocations={savedLocations}
+                onLocationConfirmed={(loc) => {
+                  setDeliveryLocationData(loc);
+                  if (loc.locationType === 'VENDOR_PICKUP') {
+                    setPickupType('VENDOR_PICKUP');
+                    setPickupLocation(loc.formattedAddress || 'Vendor Shop Hub');
+                  } else if (loc.locationType === 'HOTEL' || loc.locationType === 'HOSTEL') {
+                    setPickupType('HOTEL_DELIVERY');
+                    setHotelAddress(loc.formattedAddress || loc.address);
+                  } else {
+                    setPickupType('DOORSTEP');
+                    setHotelAddress(loc.formattedAddress || loc.address);
+                  }
+                }}
+              />
 
               <button
                 type="button"

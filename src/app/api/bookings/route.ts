@@ -60,6 +60,7 @@ export async function POST(request: Request) {
       dropoffLocation,
       customerDetails,
       emergencyContact,
+      deliveryLocation,
       couponCode,
       paymentMethod = 'UPI',
     } = body;
@@ -86,6 +87,7 @@ export async function POST(request: Request) {
         drivingLicenseNumber: customerDetails.drivingLicenseNumber,
       },
       emergencyContact,
+      deliveryLocation,
       couponCode,
       paymentMethod,
     });

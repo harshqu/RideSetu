@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectToDatabase from '@/lib/mongodb';
 import { Vehicle } from '@/models/Vehicle';
+import { Vendor } from '@/models/Vendor';
 import { Destination } from '@/models/Destination';
 import { Booking } from '@/models/Booking';
 import { VehicleAvailability } from '@/models/VehicleAvailability';
