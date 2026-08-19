@@ -21,10 +21,11 @@ async function runVisualQA() {
     '/destinations/haldwani',
     '/manifest.webmanifest',
     '/api/health',
+    '/api/ready',
   ];
 
   console.log('====================================================');
-  console.log('  RideSetu Visual QA, PWA & Health Check Test');
+  console.log('  RideSetu Visual QA, PWA, Health & Readiness Test');
   console.log('====================================================\n');
 
   let passed = 0;

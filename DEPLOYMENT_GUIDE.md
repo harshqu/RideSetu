@@ -1,169 +1,140 @@
-# RideSetu — Production Deployment & Cloud Architecture Guide
+# RideSetu — Production Deployment & Operational Architecture Guide
 
-This comprehensive guide details the deployment procedure for RideSetu on modern cloud infrastructure (Vercel, AWS/DigitalOcean, and MongoDB Atlas) in Sandbox/Pilot mode.
-
----
-
-## 1. MongoDB Atlas Database Configuration
-
-1. **Create Database Cluster**:
-   - Provision a MongoDB Atlas Cluster (M0 Sandbox or M10+ Production).
-   - Recommended Region: `ap-south-1` (Mumbai, India) for minimal latency across Uttarakhand and North India.
-2. **Network Access**:
-   - Add IP whitelist rules (or allow access from Vercel static IPs / `0.0.0.0/0` with strong password authentication).
-3. **Database User & Permissions**:
-   - Create a database user with `readWrite` access to the `ridesetu` database.
-   - Example connection string:
-     ```
-     mongodb+srv://<username>:<password>@cluster0.ridesetu.mongodb.net/ridesetu?retryWrites=true&w=majority
-     ```
-4. **Database Indexes**:
-   - All critical indexes (e.g. `bookings.reservationHoldExpiresAt`, `vehicles.destinationId`, `reviews.bookingId`) are indexed via Mongoose schemas.
+> [!IMPORTANT]
+> **Controlled Pilot Deployment Notice**:
+> **LIVE PAYMENTS ARE STRICTLY DISABLED.** The application is configured exclusively in `SANDBOX / TEST` mode with `PAYMENT_PROVIDER=RAZORPAY` (Test API keys) or `MOCK`. No real financial transactions are enabled until legal, financial, payment, and KYC compliance reviews are finalized.
 
 ---
 
-## 2. Environment Variables Configuration
-
-Set these environment variables in your deployment dashboard (e.g. Vercel Project Settings → Environment Variables):
-
-| Variable | Description | Example / Default | Required |
-| :--- | :--- | :--- | :--- |
-| `MONGODB_URI` | MongoDB Atlas Connection String | `mongodb+srv://...` | Yes |
-| `JWT_SECRET` | Secret key for JWT session tokens (min 32 chars) | `your-32-char-random-jwt-secret` | Yes |
-| `ENCRYPTION_KEY` | AES-256-GCM hex key (32 bytes / 64 hex chars) | `64-character-hex-string` | Yes |
-| `NEXT_PUBLIC_APP_URL` | Public production domain | `https://ridesetu.com` | Yes |
-| `PAYMENT_PROVIDER` | Payment engine mode (`MOCK` or `RAZORPAY_SANDBOX`) | `RAZORPAY_SANDBOX` | Yes |
-| `RAZORPAY_KEY_ID` | Razorpay Test API Key ID | `rzp_test_...` | Yes |
-| `RAZORPAY_KEY_SECRET` | Razorpay Test API Key Secret | `your-razorpay-test-secret` | Yes |
-| `RAZORPAY_WEBHOOK_SECRET` | Razorpay Webhook Secret for signature verification | `your-webhook-secret` | Yes |
-| `PAYOUT_PROVIDER` | Payout provider mode | `MOCK` | Yes |
-| `NOTIFICATION_PROVIDER` | Notification dispatch mode | `MOCK` | Yes |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps API Key (Optional) | `AIzaSy...` | Optional |
-
-> [!CAUTION]
-> **Zero Credential Leaks**: Never expose `JWT_SECRET`, `ENCRYPTION_KEY`, `RAZORPAY_KEY_SECRET`, or `MONGODB_URI` with the `NEXT_PUBLIC_` prefix.
-
----
-
-## 3. Local Development & Seed
+## 1. Local Development & Quickstart
 
 ```bash
-# 1. Install dependencies
+# 1. Clone repository and install dependencies
+git checkout release/pilot-v1
 npm install
 
-# 2. Configure local environment
+# 2. Configure local environment variables
 cp .env.example .env.local
 
-# 3. Seed verified fleet, destinations, and partner operators
+# 3. Seed database with verified Himalayan fleet and partner operators
 npm run db:seed
 
-# 4. Start development server
+# 4. Start Next.js development server
 npm run dev
 ```
 
 ---
 
-## 4. Production Build & Validation
+## 2. MongoDB Atlas Setup & Database Environments
 
-Run the full pre-deployment verification pipeline locally before pushing:
+| Environment | Purpose | Cluster Recommendation | Region |
+| :--- | :--- | :--- | :--- |
+| **Development** | Local testing & seed scripts | Atlas M0 Free Sandbox | `ap-south-1` (Mumbai) |
+| **Controlled Pilot** | User acceptance & device testing | Atlas M10 Dedicated | `ap-south-1` (Mumbai) |
+| **Production** | Commercial operations | Atlas M30+ High Availability | `ap-south-1` Multi-AZ |
 
-```bash
-# Linting
-npm run lint
-
-# Next.js Production Build
-npm run build
-
-# Architecture & Availability Tests
-npm run test:availability
-
-# Full End-to-End Test Suite
-npm run test:e2e
-
-# Date Sync & Razorpay Test Suite
-npx tsx src/scripts/test-reservation-razorpay.ts
-
-# Mobile Viewport & Overflow Audit
-npx tsx src/scripts/test-mobile-overflow.ts
-
-# Security & Secret Exposure Audit
-npx tsx src/scripts/test-security-scan.ts
-```
+### Network & Access Configuration
+1. Configure Atlas Network Access IP whitelist (allow Vercel serverless IP ranges or `0.0.0.0/0` with strong multi-character database passwords).
+2. Use separate database users and distinct cluster connection strings for Development, Pilot, and Production environments.
 
 ---
 
-## 5. Vercel Deployment
+## 3. Environment Variables Configuration
 
-1. **Import Repository**:
-   - Link GitHub/GitLab repository to Vercel.
-2. **Framework Preset**:
-   - Select `Next.js`.
-3. **Root Directory**:
-   - `./`
-4. **Build Command**:
-   - `npm run build`
-5. **Install Command**:
-   - `npm install`
-6. **Environment Variables**:
-   - Paste all required environment variables into the Vercel project settings.
-7. **Deploy**:
-   - Trigger production deployment.
+Set these variables in the cloud hosting provider (e.g. Vercel Environment Variables dashboard):
 
----
+| Variable | Scope | Description | Pilot Setting |
+| :--- | :--- | :--- | :--- |
+| `MONGODB_URI` | Server Only | MongoDB Atlas Connection String | `mongodb+srv://...` |
+| `JWT_SECRET` | Server Only | Session signing secret (min 32 chars) | Random 64-char key |
+| `ENCRYPTION_KEY` | Server Only | AES-256-GCM hex key (32 bytes) | Random 64-hex key |
+| `NEXT_PUBLIC_APP_URL` | Universal | Public root application URL | `https://ridesetu.com` |
+| `PAYMENT_PROVIDER` | Server Only | Gateway mode (`RAZORPAY` or `MOCK`) | `RAZORPAY` |
+| `RAZORPAY_KEY_ID` | Universal | Razorpay Test API Key ID | `rzp_test_...` |
+| `RAZORPAY_KEY_SECRET` | Server Only | Razorpay Test API Secret | Server-side isolated |
+| `RAZORPAY_WEBHOOK_SECRET` | Server Only | Webhook HMAC verification secret | Server-side isolated |
+| `PAYOUT_PROVIDER` | Server Only | Vendor payout mode | `MOCK` |
+| `NOTIFICATION_PROVIDER` | Server Only | Notification dispatch engine | `MOCK` |
 
-## 6. Custom Domain & SSL Configuration
-
-1. In Vercel Domain Settings, add `ridesetu.com` and `www.ridesetu.com`.
-2. Configure DNS A/CNAME records at your DNS registrar:
-   - `A @ 76.76.21.21`
-   - `CNAME www cname.vercel-dns.com`
-3. SSL certificates will automatically be generated and renewed via Let's Encrypt / Vercel Edge Network.
+> [!CAUTION]
+> **Zero Credential Leaks**: Never expose `JWT_SECRET`, `ENCRYPTION_KEY`, `RAZORPAY_KEY_SECRET`, or `MONGODB_URI` to client JavaScript bundles.
 
 ---
 
-## 7. Razorpay Test/Sandbox Integration
+## 4. Razorpay Test Mode Setup
 
-1. In Razorpay Dashboard, toggle to **Test Mode**.
-2. Navigate to **Settings → API Keys** and generate a Test Key ID (`rzp_test_...`) and Secret.
-3. Configure `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` in environment variables.
-4. Set `PAYMENT_PROVIDER=RAZORPAY_SANDBOX`.
-5. Test payments will automatically use the sandbox gateway with simulated card and UPI test credentials.
+1. Log in to the Razorpay Merchant Dashboard and toggle to **Test Mode**.
+2. Generate API Keys under **Settings → API Keys**.
+3. Set `RAZORPAY_KEY_ID=rzp_test_...` and `RAZORPAY_KEY_SECRET`.
+4. Test payments will utilize simulated cards, net banking, and UPI sandbox handles without real money transfer.
 
 ---
 
-## 8. Razorpay Webhook Configuration
+## 5. Razorpay Webhook Configuration
 
 1. In Razorpay Dashboard, navigate to **Settings → Webhooks**.
 2. Add Webhook URL: `https://your-domain.com/api/payments/webhook`.
-3. Select Events:
+3. Secret: Enter a strong random secret and configure as `RAZORPAY_WEBHOOK_SECRET`.
+4. Subscribed Events:
    - `payment.captured`
    - `payment.failed`
+   - `refund.created`
    - `refund.processed`
-4. Set a strong Webhook Secret and set it as `RAZORPAY_WEBHOOK_SECRET` in Vercel.
+5. The endpoint performs raw-body HMAC-SHA256 signature verification and idempotent deduplication.
 
 ---
 
-## 9. Production Security Checklist
+## 6. Vercel Deployment
 
-- [x] All database queries use parameterized Mongoose find/update operations (No NoSQL injection).
-- [x] Passwords hashed with `bcryptjs` (salt factor 10).
-- [x] Role-Based Access Control (RBAC) enforced across Customer, Vendor, and Admin routes.
-- [x] Driving Licence numbers and sensitive customer info masked on non-admin client views.
-- [x] Refundable security deposit isolated from rental revenue across all ledger calculations.
-- [x] Razorpay signatures verified via HMAC-SHA256 before confirming bookings.
-- [x] Health check endpoint active at `/api/health`.
-- [x] Zero secret leaks in client bundles (`test-security-scan.ts` PASS).
+1. Connect GitHub repository to Vercel and select branch `release/pilot-v1`.
+2. Framework Preset: `Next.js`.
+3. Build Command: `npm run build`.
+4. Add all environment variables in project settings.
+5. Deploy and inspect deployment logs.
 
 ---
 
-## 10. Rollback Procedure
+## 7. Domain & SSL Configuration
 
-In case of any unexpected production regression:
+1. Add custom domains: `ridesetu.com` and `www.ridesetu.com`.
+2. Configure DNS A Record `@` to `76.76.21.21` and CNAME `www` to `cname.vercel-dns.com`.
+3. Automatic TLS/SSL certificates are provisioned via Vercel Edge Network.
 
-```bash
-# Instant rollback in Vercel
-vercel rollback
+---
 
-# Or revert to prior Git milestone snapshot
-git checkout ui/mobile-responsive-fix
-```
+## 8. Health & Readiness Telemetry
+
+- **Health Endpoint**: `GET /api/health` → Returns `{ status: 'ok', environment: 'sandbox', database: 'connected' }`.
+- **Readiness Endpoint**: `GET /api/ready` → Verifies configuration validity, database reachability, and payment provider mode without exposing infrastructure secrets.
+
+---
+
+## 9. Database Backup Strategy & PITR
+
+1. **Automated Daily Snapshots**: Retained for 30 days in MongoDB Atlas.
+2. **Continuous Cloud Backups (PITR)**: Enables point-in-time recovery down to the second for the last 7 days.
+3. **Manual Snapshot Trigger**: Take a manual snapshot before any major database migration.
+
+---
+
+## 10. Rollback Strategy
+
+Refer to [`PRODUCTION_ROLLBACK.md`](file:///C:/Users/Harshwardhan/.gemini/antigravity/scratch/ridesetu/PRODUCTION_ROLLBACK.md) for instant zero-downtime Vercel rollbacks and Git snapshot restoration.
+
+---
+
+## 11. Incident Response Runbook
+
+Refer to [`INCIDENT_RESPONSE.md`](file:///C:/Users/Harshwardhan/.gemini/antigravity/scratch/ridesetu/INCIDENT_RESPONSE.md) for standard operational procedures covering payment discrepancies, database failover, and lock management.
+
+---
+
+## 12. Sandbox to Commercial Production Migration Checklist
+
+Before transitioning from Controlled Pilot to Live Commercial Launch:
+- [ ] Complete formal legal & terms of service compliance review.
+- [ ] Complete payment aggregator banking KYC and activate live merchant account.
+- [ ] Execute security penetration audit.
+- [ ] Establish automated offsite database backups.
+- [ ] Configure live customer SMS gateway and WhatsApp business credentials.
+- [ ] Execute formal dual-operator sign-off before toggling `PAYMENT_PROVIDER` to live mode.
