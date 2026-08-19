@@ -25,6 +25,8 @@ import {
   ChevronLeft,
   Lock,
   Zap,
+  Edit3,
+  RefreshCw,
 } from 'lucide-react';
 
 function BookingFlowContent() {
@@ -40,6 +42,9 @@ function BookingFlowContent() {
   const [vehicle, setVehicle] = useState<any>(null);
   const [pricing, setPricing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [priceUpdating, setPriceUpdating] = useState(false);
+  const [isDateAvailable, setIsDateAvailable] = useState(true);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Form fields
@@ -125,10 +130,17 @@ function BookingFlowContent() {
     }
   }, [vehicleId]);
 
-  // Recalculate Pricing via Server Endpoint
+  // Recalculate Pricing via Server Endpoint whenever trip parameters change
   const calculateServerPrice = useCallback(async (coupon?: string) => {
     if (!vehicle) return;
     try {
+      setPriceUpdating(true);
+      setError(null);
+      setAvailabilityError(null);
+      // Invalidate stale payment orders when trip parameters change
+      setOrderData(null);
+      setPaymentOpen(false);
+
       const pDateTime = `${pickupDate}T${pickupTime}:00`;
       const rDateTime = `${returnDate}T${returnTime}:00`;
 
@@ -147,9 +159,22 @@ function BookingFlowContent() {
       const data = await res.json();
       if (data.success && data.pricing) {
         setPricing(data.pricing);
+        if (data.available === false) {
+          setIsDateAvailable(false);
+          setAvailabilityError(data.availabilityReason || 'Selected vehicle is not available for these dates.');
+        } else {
+          setIsDateAvailable(true);
+          setAvailabilityError(null);
+        }
+      } else if (data.error) {
+        setAvailabilityError(data.error);
+        setIsDateAvailable(false);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Price calculation error:', err);
+      setAvailabilityError(err.message || 'Failed to update pricing.');
+    } finally {
+      setPriceUpdating(false);
     }
   }, [vehicle, pickupDate, pickupTime, returnDate, returnTime, pickupType, couponCode]);
 
@@ -282,7 +307,7 @@ function BookingFlowContent() {
     return (
       <div className="max-w-4xl mx-auto p-16 text-center text-slate-500">
         <div className="inline-block w-8 h-8 border-4 border-brand-orange border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-2 text-sm">Preparing secure booking checkout...</p>
+        <p className="mt-2 text-sm font-semibold">Preparing secure booking checkout...</p>
       </div>
     );
   }
@@ -357,10 +382,11 @@ function BookingFlowContent() {
         </div>
       </div>
 
-      {error && (
-        <div className="max-w-4xl mx-auto p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs flex items-start gap-2">
+      {/* Global Error Banner */}
+      {(error || availabilityError) && (
+        <div className="max-w-4xl mx-auto p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs flex items-start gap-2 animate-fade-in-up">
           <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-          <span>{error}</span>
+          <span>{error || availabilityError}</span>
         </div>
       )}
 
@@ -413,12 +439,12 @@ function BookingFlowContent() {
                       value={pickupDate}
                       min={new Date().toISOString().split('T')[0]}
                       onChange={(e) => setPickupDate(e.target.value)}
-                      className="w-3/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none"
+                      className="w-3/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-brand-orange"
                     />
                     <select
                       value={pickupTime}
                       onChange={(e) => setPickupTime(e.target.value)}
-                      className="w-2/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none"
+                      className="w-2/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-brand-orange"
                     >
                       <option value="09:00">09:00 AM</option>
                       <option value="10:00">10:00 AM</option>
@@ -439,13 +465,14 @@ function BookingFlowContent() {
                       value={returnDate}
                       min={pickupDate}
                       onChange={(e) => setReturnDate(e.target.value)}
-                      className="w-3/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none"
+                      className="w-3/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-brand-orange"
                     />
                     <select
                       value={returnTime}
                       onChange={(e) => setReturnTime(e.target.value)}
-                      className="w-2/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none"
+                      className="w-2/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-brand-orange"
                     >
+                      <option value="09:00">09:00 AM</option>
                       <option value="10:00">10:00 AM</option>
                       <option value="14:00">02:00 PM</option>
                       <option value="18:00">06:00 PM</option>
@@ -455,7 +482,7 @@ function BookingFlowContent() {
                 </div>
               </div>
 
-              {/* Google Maps Delivery & Pickup Location Selector */}
+              {/* Delivery / Location Selection */}
               <DeliveryLocationSelector
                 destinationCity={vehicle?.destinationId?.city || 'Rishikesh'}
                 initialType={pickupType}
@@ -479,11 +506,23 @@ function BookingFlowContent() {
 
               <button
                 type="button"
+                disabled={priceUpdating || !isDateAvailable}
                 onClick={() => setStep(2)}
-                className="w-full py-3.5 rounded-2xl bg-brand-orange hover:bg-brand-dark text-white font-bold text-sm shadow-md shadow-brand-orange/20 flex items-center justify-center gap-2 transition-all"
+                className="w-full py-3.5 rounded-2xl bg-brand-orange hover:bg-brand-dark text-white font-bold text-sm shadow-md shadow-brand-orange/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
               >
-                <span>Continue to Traveller & KYC</span>
-                <ArrowRight className="w-4 h-4" />
+                {priceUpdating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Updating availability & price...</span>
+                  </>
+                ) : !isDateAvailable ? (
+                  <span>Vehicle unavailable for selected dates</span>
+                ) : (
+                  <>
+                    <span>Continue to Traveller & KYC</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </div>
           )}
@@ -640,9 +679,9 @@ function BookingFlowContent() {
                   type="button"
                   onClick={() => setStep(3)}
                   disabled={kycStatusData && !kycStatusData.isEligibleForBooking}
-                  className="flex-1 py-3 rounded-2xl bg-brand-orange hover:bg-orange-600 text-white font-bold text-xs shadow-lg shadow-orange-950/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 py-3 rounded-2xl bg-brand-orange hover:bg-orange-600 text-white font-bold text-xs shadow-lg shadow-orange-950/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                 >
-                  Proceed to Review <ArrowRight className="w-4 h-4" />
+                  <span>Proceed to Review</span> <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -651,25 +690,41 @@ function BookingFlowContent() {
           {/* STEP 3: Review & Payment Confirmation */}
           {step === 3 && (
             <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-6">
-              <div className="border-b border-slate-100 pb-3">
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-brand-light text-brand-dark">
-                  Step 3 of 3
-                </span>
-                <h2 className="text-xl font-bold font-heading text-navy-900 mt-1">
-                  Review & Secure Payment
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Confirm your reservation and lock the vehicle with verified local partner.
-                </p>
+              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-brand-light text-brand-dark">
+                    Step 3 of 3
+                  </span>
+                  <h2 className="text-xl font-bold font-heading text-navy-900 mt-1">
+                    Review & Secure Payment
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Confirm your reservation and lock the vehicle with verified local partner.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="text-xs font-bold text-brand-orange hover:underline flex items-center gap-1"
+                >
+                  <Edit3 className="w-3.5 h-3.5" /> Modify Dates
+                </button>
               </div>
 
               <div className="space-y-3 text-xs">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                  <div className="font-bold text-slate-900 text-sm">{vehicle?.brand} {vehicle?.model}</div>
-                  <div className="grid grid-cols-2 gap-2 text-slate-600">
+                {/* Trip Details Card */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-slate-900 font-heading text-sm">{vehicle?.brand} {vehicle?.model}</span>
+                    <span className="text-[11px] font-bold text-slate-500 px-2 py-0.5 bg-white rounded-md border border-slate-200">
+                      {pricing?.durationDays || 1} billable day{pricing?.durationDays > 1 ? 's' : ''} ({pricing?.durationHours || 24}h)
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600">
                     <div>📍 <strong>Pickup:</strong> {pickupDate} ({pickupTime})</div>
                     <div>🏁 <strong>Return:</strong> {returnDate} ({returnTime})</div>
-                    <div>🏬 <strong>Partner:</strong> {vehicle?.vendorId?.businessName}</div>
+                    <div>🏬 <strong>Partner:</strong> {vehicle?.vendorId?.businessName || 'Verified Partner'}</div>
                     <div>🛵 <strong>Delivery:</strong> {pickupType}</div>
                   </div>
                 </div>
@@ -692,12 +747,22 @@ function BookingFlowContent() {
                 </button>
                 <button
                   type="button"
-                  disabled={initiatingPayment}
+                  disabled={initiatingPayment || priceUpdating || !isDateAvailable}
                   onClick={handleInitiatePayment}
-                  className="flex-2 py-3 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="flex-2 py-3 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
                 >
                   {initiatingPayment ? (
-                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <>
+                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      <span>Securing Hold...</span>
+                    </>
+                  ) : priceUpdating ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Updating Price...</span>
+                    </>
+                  ) : !isDateAvailable ? (
+                    <span>Dates Unavailable</span>
                   ) : (
                     <>
                       <Lock className="w-4 h-4" />
@@ -714,6 +779,7 @@ function BookingFlowContent() {
         <div className="lg:col-span-1">
           <PriceBreakdownCard
             pricing={pricing}
+            loading={priceUpdating}
             onApplyCoupon={handleApplyCoupon}
           />
         </div>
@@ -740,7 +806,7 @@ function BookingFlowContent() {
 
 export default function BookingPage() {
   return (
-    <Suspense fallback={<div className="p-16 text-center text-slate-500">Loading checkout...</div>}>
+    <Suspense fallback={<div className="p-16 text-center text-slate-500 font-semibold">Loading checkout...</div>}>
       <BookingFlowContent />
     </Suspense>
   );

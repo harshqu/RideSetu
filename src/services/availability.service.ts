@@ -139,7 +139,6 @@ export class AvailabilityService {
         typeof params.excludeUserId === 'string'
           ? new mongoose.Types.ObjectId(params.excludeUserId)
           : params.excludeUserId;
-      // Allow lock if it was created by the same user; only block if userId is different or unassigned
       lockQuery.userId = { $ne: userOid };
     }
 
@@ -169,9 +168,9 @@ export class AvailabilityService {
   }
 
   /**
-   * Acquire an atomic, database-backed reservation hold on MongoDB Atlas.
-   * If the current authenticated customer already holds an active lock for this vehicle/dates,
-   * it is reused and refreshed automatically without causing a duplicate hold conflict.
+   * Acquire or update an atomic, database-backed reservation hold on MongoDB Atlas.
+   * If the current authenticated customer already holds an active lock for this vehicle,
+   * it is reused, synchronized to the new date range, and refreshed automatically.
    */
   public static async acquireDistributedReservation(params: {
     vehicleId: string | mongoose.Types.ObjectId;
@@ -206,7 +205,7 @@ export class AvailabilityService {
       { $set: { status: 'EXPIRED' } }
     );
 
-    // 2. Check if the CURRENT customer already has an active, unexpired hold for this vehicle
+    // 2. Check if the CURRENT customer already has ANY active unconfirmed hold for this vehicle
     if (params.userId) {
       const userOid =
         typeof params.userId === 'string' ? new mongoose.Types.ObjectId(params.userId) : params.userId;
@@ -216,15 +215,45 @@ export class AvailabilityService {
         userId: userOid,
         status: 'HOLD',
         expiresAt: { $gt: new Date() },
-        pickupDateTime: { $lt: returnDate },
-        returnDateTime: { $gt: pickup },
       });
 
       if (existingUserHold) {
-        // Reuse existing hold and refresh expiry
-        existingUserHold.expiresAt = expiresAt;
+        // If dates are identical, simply refresh expiry
+        const isSameDates =
+          new Date(existingUserHold.pickupDateTime).getTime() === pickup.getTime() &&
+          new Date(existingUserHold.returnDateTime).getTime() === returnDate.getTime();
+
+        if (isSameDates) {
+          existingUserHold.expiresAt = expiresAt;
+          if (params.sessionToken) {
+            existingUserHold.sessionToken = params.sessionToken;
+          }
+          await existingUserHold.save();
+
+          return {
+            acquired: true,
+            reservation: existingUserHold,
+            isReused: true,
+          };
+        }
+
+        // If dates have changed, verify availability for the NEW dates (excluding this existing lock)
+        const check = await this.isVehicleAvailable({
+          vehicleId: vehicleObjectId,
+          pickupDateTime: pickup,
+          returnDateTime: returnDate,
+          excludeUserId: params.userId,
+          excludeReservationLockId: existingUserHold._id,
+        });
+
+        if (!check.available) {
+          return { acquired: false, reason: check.reason };
+        }
+
+        // Synchronize existing hold to the new dates & refresh expiry
         existingUserHold.pickupDateTime = pickup;
         existingUserHold.returnDateTime = returnDate;
+        existingUserHold.expiresAt = expiresAt;
         if (params.sessionToken) {
           existingUserHold.sessionToken = params.sessionToken;
         }

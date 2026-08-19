@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { formatINR } from '@/lib/utils';
-import { ShieldCheck, Tag, Info, CheckCircle2, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
+import { ShieldCheck, Tag, Info, CheckCircle2, AlertCircle, ArrowRight, Sparkles, RefreshCw } from 'lucide-react';
 
 interface PriceBreakdownCardProps {
   pricing: {
@@ -60,11 +60,26 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xl p-6 sm:p-7 space-y-5 sticky top-20">
+    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xl p-6 sm:p-7 space-y-5 sticky top-20 relative overflow-hidden">
+      {/* Loading Overlay when calculating price */}
+      {loading && (
+        <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center gap-2 text-brand-dark font-extrabold text-xs">
+          <RefreshCw className="w-5 h-5 text-brand-orange animate-spin" />
+          <span>Updating availability & price...</span>
+        </div>
+      )}
+
       <div className="border-b border-slate-100 pb-3">
-        <h3 className="font-black font-heading text-navy-950 text-lg">
-          Itemized Price Breakdown
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-black font-heading text-navy-950 text-lg">
+            Itemized Price Breakdown
+          </h3>
+          {loading && (
+            <span className="text-[10px] font-bold text-brand-orange animate-pulse">
+              Recalculating...
+            </span>
+          )}
+        </div>
         <p className="text-xs text-slate-500 font-medium">
           Zero hidden fees. Refundable deposit is returned immediately on trip completion.
         </p>
@@ -74,7 +89,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
       <div className="space-y-2.5 text-xs text-slate-700">
         <div className="flex items-center justify-between">
           <span className="font-medium">
-            Base Rental ({pricing.durationDays} day{pricing.durationDays > 1 ? 's' : ''} @ {formatINR(pricing.pricePerDay)}/day)
+            Base Rental ({pricing.durationDays} billable day{pricing.durationDays > 1 ? 's' : ''} • {pricing.durationHours}h @ {formatINR(pricing.pricePerDay)}/day)
           </span>
           <span className="font-extrabold text-slate-900">{formatINR(pricing.basePrice)}</span>
         </div>
@@ -141,22 +156,28 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
           </div>
           <button
             type="submit"
-            disabled={applying || !couponCode.trim()}
+            disabled={applying || !couponCode.trim() || loading}
             className="px-4 py-2 bg-navy-950 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-sm transition-all disabled:opacity-50"
           >
             {applying ? 'Applying...' : 'Apply'}
           </button>
         </div>
         {couponError && (
-          <p className="text-[10px] text-rose-600 font-semibold">{couponError}</p>
+          <p className="text-[11px] font-bold text-red-600 flex items-center gap-1 mt-1">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {couponError}
+          </p>
         )}
       </form>
 
-      {/* Total Payable */}
-      <div className="pt-3 border-t-2 border-dashed border-slate-200 flex items-baseline justify-between">
+      {/* Total Payable Block */}
+      <div className="pt-3 border-t-2 border-slate-100 flex items-baseline justify-between">
         <div>
-          <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Total Payable</span>
-          <p className="text-[10px] text-slate-500 font-semibold">(Includes Rent + Taxes + Deposit)</p>
+          <span className="text-xs font-black text-slate-400 uppercase tracking-wider block">
+            Total Payable
+          </span>
+          <span className="text-[11px] text-slate-500 font-medium">
+            (Includes {formatINR(pricing.securityDeposit)} deposit)
+          </span>
         </div>
         <div className="text-right">
           <span className="text-2xl font-black font-heading text-navy-950">

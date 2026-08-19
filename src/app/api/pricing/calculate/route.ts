@@ -4,6 +4,8 @@ import connectToDatabase from '@/lib/mongodb';
 import { Vehicle } from '@/models/Vehicle';
 import { Coupon } from '@/models/Coupon';
 import { PricingService } from '@/services/pricing.service';
+import { AvailabilityService } from '@/services/availability.service';
+import { getAuthUser } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
@@ -35,7 +37,20 @@ export async function POST(request: Request) {
       coupon: coupon as any,
     });
 
-    return NextResponse.json({ success: true, pricing });
+    const user = await getAuthUser(request as any);
+    const avail = await AvailabilityService.isVehicleAvailable({
+      vehicleId,
+      pickupDateTime,
+      returnDateTime,
+      excludeUserId: user?.userId,
+    });
+
+    return NextResponse.json({
+      success: true,
+      pricing,
+      available: avail.available,
+      availabilityReason: avail.reason || null,
+    });
   } catch (error: any) {
     console.error('[API Pricing Calculate Error]:', error);
     return NextResponse.json({ error: error.message || 'Pricing calculation failed' }, { status: 500 });
