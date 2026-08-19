@@ -6,12 +6,9 @@ dotenv.config({ path: '.env.local' });
 import { AvailabilityService } from '../services/availability.service';
 import { PaymentService } from '../services/payment.service';
 import { PricingService } from '../services/pricing.service';
-import { BookingService } from '../services/booking.service';
 import { ReservationLock } from '../models/ReservationLock';
 import { Payment } from '../models/Payment';
 import { Booking } from '../models/Booking';
-import { Vehicle } from '../models/Vehicle';
-import { User } from '../models/User';
 import connectToDatabase from '../lib/mongodb';
 
 async function runReservationRazorpayTests() {
@@ -204,6 +201,62 @@ async function runReservationRazorpayTests() {
     assert(confirmedLock?.status === 'CONFIRMED', 'Reservation status transitions to CONFIRMED on payment capture');
     assert(confirmedLock?.bookingId?.toString() === mockBookingId.toString(), 'Confirmed reservation links generated bookingId');
   }
+
+  // -------------------------------------------------------------
+  // TEST SECTION 5: Payment Failure & Lock Release Flow
+  // -------------------------------------------------------------
+  console.log('\n--- 5. Testing Payment Failure & Lock Release ---');
+  const failHold = await AvailabilityService.acquireDistributedReservation({
+    vehicleId: testVehicleId,
+    userId: customerAId,
+    pickupDateTime: new Date('2026-09-01T09:00:00Z'),
+    returnDateTime: new Date('2026-09-02T20:00:00Z'),
+  });
+  assert(failHold.acquired === true, 'Acquired temporary hold for failure test');
+
+  if (failHold.reservation) {
+    await AvailabilityService.releaseReservation(failHold.reservation._id);
+    const released = await ReservationLock.findById(failHold.reservation._id).lean();
+    assert(released?.status === 'RELEASED', 'Hold status transitions to RELEASED on payment failure');
+
+    const availableAfterFail = await AvailabilityService.isVehicleAvailable({
+      vehicleId: testVehicleId,
+      pickupDateTime: new Date('2026-09-01T09:00:00Z'),
+      returnDateTime: new Date('2026-09-02T20:00:00Z'),
+    });
+    assert(availableAfterFail.available === true, 'Dates become immediately available after lock release');
+  }
+
+  // -------------------------------------------------------------
+  // TEST SECTION 6: Razorpay Webhook HMAC Verification & Idempotency
+  // -------------------------------------------------------------
+  console.log('\n--- 6. Testing Razorpay Webhook HMAC & Idempotency ---');
+  const webhookSecret = 'test_webhook_secret_99999';
+  const webhookPayload = JSON.stringify({
+    event: 'payment.captured',
+    payload: {
+      payment: {
+        entity: {
+          id: 'pay_hook_test_123',
+          order_id: 'order_hook_test_123',
+          amount: 214300,
+          currency: 'INR',
+          status: 'captured',
+        },
+      },
+    },
+  });
+
+  const validWebhookSig = crypto
+    .createHmac('sha256', webhookSecret)
+    .update(webhookPayload)
+    .digest('hex');
+
+  const isWebhookSigValid = PaymentService.verifyWebhookSignature(webhookPayload, validWebhookSig, webhookSecret);
+  assert(isWebhookSigValid === true, 'Authentic Webhook HMAC signature accepted');
+
+  const isWebhookSigTampered = PaymentService.verifyWebhookSignature(webhookPayload, 'tampered_hook_signature', webhookSecret);
+  assert(isWebhookSigTampered === false, 'Tampered Webhook signature rejected');
 
   // Cleanup test locks
   await ReservationLock.deleteMany({ vehicleId: testVehicleId });
