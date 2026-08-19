@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
@@ -26,14 +27,14 @@ async function runFinancialReconciliationTest() {
   // -------------------------------------------------------------
   console.log('--- 1. Testing Standard 2-day Rental Reconciliation ---');
   const vehicle1 = {
-    _id: 'veh_001',
+    _id: new mongoose.Types.ObjectId(),
     pricePerDay: 460,
     securityDeposit: 1000,
     category: 'SCOOTER' as const,
   };
 
   const pricing1 = PricingService.calculatePricing({
-    vehicle: vehicle1,
+    vehicle: vehicle1 as any,
     pickupDateTime: new Date('2026-08-20T09:00:00Z'),
     returnDateTime: new Date('2026-08-21T20:00:00Z'),
     pickupType: 'VENDOR_PICKUP',
