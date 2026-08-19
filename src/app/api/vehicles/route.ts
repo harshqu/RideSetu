@@ -7,6 +7,8 @@ import { Destination } from '@/models/Destination';
 import { Booking } from '@/models/Booking';
 import { VehicleAvailability } from '@/models/VehicleAvailability';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -20,7 +22,10 @@ export async function GET(request: Request) {
     const fuelType = searchParams.get('fuelType');
     const minRating = searchParams.get('minRating');
     const maxDeposit = searchParams.get('maxDeposit');
-    const deliveryAvailable = searchParams.get('delivery');
+    const deliveryAvailable = searchParams.get('delivery') || searchParams.get('doorstepDelivery');
+    const hotelDelivery = searchParams.get('hotelDelivery');
+    const hostelDelivery = searchParams.get('hostelDelivery');
+    const helmet = searchParams.get('helmet');
     const verifiedOnly = searchParams.get('verifiedOnly');
     const sort = searchParams.get('sort') || 'recommended';
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -28,9 +33,21 @@ export async function GET(request: Request) {
 
     await connectToDatabase();
 
-    const query: Record<string, unknown> = {
+    // Query only verified, active vendors
+    const activeVendors = await Vendor.find({
+      verificationStatus: 'VERIFIED',
+      isActive: true,
+    }).select('_id').lean();
+
+    const verifiedVendorIds = activeVendors.map((v) => v._id);
+
+    const query: Record<string, any> = {
       isAvailable: true,
-      isVerified: true,
+      $or: [
+        { status: 'APPROVED' },
+        { status: { $exists: false }, isVerified: true },
+      ],
+      vendorId: { $in: verifiedVendorIds },
     };
 
     // Filter by Destination (by slug or ObjectId)
@@ -54,8 +71,8 @@ export async function GET(request: Request) {
     // Filter by Price range
     if (minPrice || maxPrice) {
       query.pricePerDay = {};
-      if (minPrice) (query.pricePerDay as Record<string, number>).$gte = Number(minPrice);
-      if (maxPrice) (query.pricePerDay as Record<string, number>).$lte = Number(maxPrice);
+      if (minPrice) query.pricePerDay.$gte = Number(minPrice);
+      if (maxPrice) query.pricePerDay.$lte = Number(maxPrice);
     }
 
     // Filter by Transmission
@@ -78,9 +95,18 @@ export async function GET(request: Request) {
       query.securityDeposit = { $lte: Number(maxDeposit) };
     }
 
-    // Filter by Delivery
+    // Filter by Delivery options
     if (deliveryAvailable === 'true') {
       query.deliveryAvailable = true;
+    }
+    if (hotelDelivery === 'true') {
+      query.hotelDeliveryAvailable = true;
+    }
+    if (hostelDelivery === 'true') {
+      query.hostelDeliveryAvailable = true;
+    }
+    if (helmet === 'true') {
+      query.helmetIncluded = true;
     }
 
     // Date Availability Filtering

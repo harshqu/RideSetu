@@ -5,6 +5,14 @@ import './Destination';
 export type VehicleCategory = 'SCOOTER' | 'MOTORCYCLE' | 'CAR' | 'EV';
 export type FuelType = 'PETROL' | 'DIESEL' | 'ELECTRIC' | 'HYBRID' | 'CNG';
 export type TransmissionType = 'AUTOMATIC' | 'MANUAL';
+export type VehicleStatus =
+  | 'DRAFT'
+  | 'UNDER_REVIEW'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'SUSPENDED'
+  | 'MAINTENANCE'
+  | 'INACTIVE';
 
 export interface IVehicle {
   _id: mongoose.Types.ObjectId;
@@ -20,6 +28,11 @@ export interface IVehicle {
   odometer: number;
   fuelType: FuelType;
   transmission: TransmissionType;
+  description?: string;
+  status: VehicleStatus;
+  rejectionReason?: string;
+  reviewedAt?: Date;
+  reviewedBy?: mongoose.Types.ObjectId;
   pricePerDay: number;
   pricePerHour: number;
   weekendPrice?: number;
@@ -35,10 +48,28 @@ export interface IVehicle {
   isAvailable: boolean;
   isVerified: boolean;
   deliveryAvailable: boolean;
+  hotelDeliveryAvailable?: boolean;
+  hostelDeliveryAvailable?: boolean;
+  pickupAvailable?: boolean;
+  lateReturnFeePerHour?: number;
   oneWayAvailable: boolean;
   helmetIncluded: boolean;
   roadsideAssistance: boolean;
   images: string[];
+  photos?: {
+    front?: string;
+    rear?: string;
+    left?: string;
+    right?: string;
+    dashboard?: string;
+    odometer?: string;
+  };
+  documents?: {
+    rcDocUrl?: string;
+    insuranceDocUrl?: string;
+    pucDocUrl?: string;
+    permitDocUrl?: string;
+  };
   specifications: {
     engineCc?: number;
     batteryCapacityKwh?: number;
@@ -86,6 +117,16 @@ const VehicleSchema = new Schema<IVehicle>(
       enum: ['AUTOMATIC', 'MANUAL'],
       default: 'MANUAL',
     },
+    description: { type: String, default: '' },
+    status: {
+      type: String,
+      enum: ['DRAFT', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'SUSPENDED', 'MAINTENANCE', 'INACTIVE'],
+      default: 'APPROVED',
+      index: true,
+    },
+    rejectionReason: { type: String, default: '' },
+    reviewedAt: { type: Date },
+    reviewedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     pricePerDay: { type: Number, required: true, min: 0, index: true },
     pricePerHour: { type: Number, default: 50 },
     weekendPrice: { type: Number },
@@ -101,10 +142,28 @@ const VehicleSchema = new Schema<IVehicle>(
     isAvailable: { type: Boolean, default: true, index: true },
     isVerified: { type: Boolean, default: true, index: true },
     deliveryAvailable: { type: Boolean, default: true },
+    hotelDeliveryAvailable: { type: Boolean, default: true },
+    hostelDeliveryAvailable: { type: Boolean, default: true },
+    pickupAvailable: { type: Boolean, default: true },
+    lateReturnFeePerHour: { type: Number, default: 100 },
     oneWayAvailable: { type: Boolean, default: false },
     helmetIncluded: { type: Boolean, default: true },
     roadsideAssistance: { type: Boolean, default: true },
     images: [{ type: String }],
+    photos: {
+      front: { type: String, default: '' },
+      rear: { type: String, default: '' },
+      left: { type: String, default: '' },
+      right: { type: String, default: '' },
+      dashboard: { type: String, default: '' },
+      odometer: { type: String, default: '' },
+    },
+    documents: {
+      rcDocUrl: { type: String, default: '' },
+      insuranceDocUrl: { type: String, default: '' },
+      pucDocUrl: { type: String, default: '' },
+      permitDocUrl: { type: String, default: '' },
+    },
     specifications: {
       engineCc: { type: Number },
       batteryCapacityKwh: { type: Number },
@@ -128,7 +187,8 @@ const VehicleSchema = new Schema<IVehicle>(
 );
 
 // Compound indexes for rapid marketplace queries
-VehicleSchema.index({ destinationId: 1, category: 1, isAvailable: 1, isVerified: 1 });
+VehicleSchema.index({ destinationId: 1, category: 1, status: 1, isAvailable: 1 });
+VehicleSchema.index({ vendorId: 1, status: 1 });
 VehicleSchema.index({ pricePerDay: 1, rating: -1 });
 
 export const Vehicle: Model<IVehicle> =

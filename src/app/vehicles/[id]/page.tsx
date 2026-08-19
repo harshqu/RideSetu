@@ -243,11 +243,14 @@ export default function VehicleDetailPage() {
           {/* Customer Reviews Section */}
           <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-base font-heading">
-                Verified Traveller Reviews ({reviews.length})
-              </h3>
-              <div className="flex items-center gap-1 text-amber-500 font-bold text-sm">
-                <Star className="w-4 h-4 fill-amber-400" />
+              <div>
+                <h3 className="font-bold text-slate-900 text-base font-heading">
+                  Verified Traveller Reviews ({reviews.length})
+                </h3>
+                <p className="text-[11px] text-slate-500">Authentic feedback from travellers who completed their journey with this ride.</p>
+              </div>
+              <div className="flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 text-amber-900 font-bold text-sm">
+                <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
                 <span>{vehicle.rating || 4.8} / 5.0</span>
               </div>
             </div>
@@ -268,6 +271,11 @@ export default function VehicleDetailPage() {
                           className="w-6 h-6 rounded-full object-cover"
                         />
                         <span className="font-bold text-slate-900">{r.customerName}</span>
+                        {r.isVerifiedRental && (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[9px] flex items-center gap-0.5">
+                            <CheckCircle2 className="w-2.5 h-2.5" /> Verified Ride
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-0.5 text-amber-400">
                         {Array.from({ length: r.overallRating || 5 }).map((_, si) => (
@@ -275,11 +283,23 @@ export default function VehicleDetailPage() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Sub-ratings */}
+                    <div className="flex flex-wrap gap-2 text-[10px] text-slate-500 py-1">
+                      <span className="bg-white px-2 py-0.5 rounded border">Vehicle: <strong>{r.vehicleConditionRating || r.overallRating}★</strong></span>
+                      <span className="bg-white px-2 py-0.5 rounded border">Host: <strong>{r.vendorBehaviorRating || r.overallRating}★</strong></span>
+                      <span className="bg-white px-2 py-0.5 rounded border">Pickup: <strong>{r.pickupExperienceRating || r.overallRating}★</strong></span>
+                      <span className="bg-white px-2 py-0.5 rounded border">Delivery: <strong>{r.deliveryExperienceRating || r.overallRating}★</strong></span>
+                    </div>
+
                     <p className="text-slate-700 leading-relaxed">{r.reviewText}</p>
-                    {r.vendorReply && (
-                      <div className="p-2.5 bg-white rounded-xl border border-slate-200 text-slate-600 mt-2">
-                        <strong className="text-slate-900 block text-[11px]">Partner Reply:</strong>
-                        <span>{r.vendorReply.text}</span>
+
+                    {r.vendorReply && r.vendorReply.text && (
+                      <div className="p-3 bg-white rounded-xl border border-slate-200 text-slate-600 mt-2 space-y-0.5">
+                        <strong className="text-slate-900 block text-[11px] flex items-center gap-1">
+                          🏢 Partner Response:
+                        </strong>
+                        <p className="text-xs text-slate-700">{r.vendorReply.text}</p>
                       </div>
                     )}
                   </div>

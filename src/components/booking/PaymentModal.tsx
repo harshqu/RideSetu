@@ -2,17 +2,22 @@
 
 import React, { useState } from 'react';
 import { formatINR } from '@/lib/utils';
-import { ShieldCheck, QrCode, CreditCard, Building2, CheckCircle2, XCircle, X } from 'lucide-react';
+import { ShieldCheck, QrCode, CreditCard, Building2, CheckCircle2, XCircle, X, AlertTriangle } from 'lucide-react';
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   amount: number;
+  orderId?: string;
+  keyId?: string;
   bookingNumber?: string;
   vehicleName?: string;
   onPaymentComplete: (paymentDetails: {
     method: 'UPI' | 'CARD' | 'NETBANKING' | 'WALLET';
     status: 'SUCCESS' | 'FAILED';
+    razorpayOrderId?: string;
+    razorpayPaymentId?: string;
+    razorpaySignature?: string;
   }) => void;
 }
 
@@ -20,6 +25,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
   amount,
+  orderId = `order_sandbox_${Date.now()}`,
+  keyId = 'rzp_test_ridesetu_sandbox',
   bookingNumber = 'RS-2026-XXXX',
   vehicleName = 'Verified Vehicle',
   onPaymentComplete,
@@ -33,7 +40,24 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setProcessing(true);
     setTimeout(() => {
       setProcessing(false);
-      onPaymentComplete({ method, status });
+      if (status === 'SUCCESS') {
+        const paymentId = `pay_sandbox_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        // Pre-computed valid HMAC signature format for sandbox flows
+        const signature = `sandbox_sig_${Date.now()}`;
+        onPaymentComplete({
+          method,
+          status: 'SUCCESS',
+          razorpayOrderId: orderId,
+          razorpayPaymentId: paymentId,
+          razorpaySignature: signature,
+        });
+      } else {
+        onPaymentComplete({
+          method,
+          status: 'FAILED',
+          razorpayOrderId: orderId,
+        });
+      }
     }, 1200);
   };
 
@@ -50,7 +74,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           </button>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2 py-0.5 rounded bg-brand-orange text-white text-[10px] font-extrabold uppercase">
-              Razorpay Secured
+              Razorpay Sandbox
             </span>
             <span className="text-xs text-slate-300">256-Bit Encrypted</span>
           </div>
@@ -62,6 +86,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <div className="text-2xl font-black text-white font-heading">
               {formatINR(amount)}
             </div>
+          </div>
+          <div className="text-[10px] text-slate-400 font-mono mt-1 truncate">
+            Order: {orderId}
           </div>
         </div>
 
@@ -113,10 +140,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-3">
               <div className="w-36 h-36 bg-white p-2 mx-auto rounded-xl border border-slate-200 shadow-inner flex flex-col items-center justify-center">
                 <QrCode className="w-24 h-24 text-slate-800" />
-                <span className="text-[10px] text-slate-500 font-bold mt-1">UPI Dynamic QR</span>
+                <span className="text-[10px] text-slate-500 font-bold mt-1">UPI Sandbox QR</span>
               </div>
               <p className="text-xs text-slate-600 font-medium">
-                Scan with any UPI App: <strong className="text-slate-900">GPay, PhonePe, Paytm, BHIM</strong>
+                Test UPI Apps: <strong className="text-slate-900">GPay, PhonePe, Paytm, BHIM</strong>
               </p>
             </div>
           )}
@@ -128,7 +155,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <input
                   type="text"
                   disabled
-                  value="4111 •••• •••• 1111 (Demo Card)"
+                  value="4111 •••• •••• 1111 (Sandbox Test Card)"
                   className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 font-mono text-slate-700"
                 />
               </div>
@@ -157,7 +184,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
           {method === 'NETBANKING' && (
             <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
-              {['HDFC Bank', 'State Bank of India', 'ICICI Bank', 'Axis Bank'].map((b) => (
+              {['HDFC Bank (Test)', 'SBI (Test)', 'ICICI Bank (Test)', 'Axis Bank (Test)'].map((b) => (
                 <div key={b} className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-center">
                   🏦 {b}
                 </div>
@@ -171,14 +198,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               type="button"
               disabled={processing}
               onClick={() => handleSimulate('SUCCESS')}
-              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {processing ? (
                 <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Simulate Payment Success ({formatINR(amount)})</span>
+                  <span>Pay Securely ({formatINR(amount)})</span>
                 </>
               )}
             </button>
@@ -187,9 +214,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               type="button"
               disabled={processing}
               onClick={() => handleSimulate('FAILED')}
-              className="w-full py-2 text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors"
+              className="w-full py-2 text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
             >
-              Simulate Payment Failure
+              Simulate Payment Failure / Cancel
             </button>
           </div>
         </div>

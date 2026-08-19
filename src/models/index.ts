@@ -19,3 +19,6 @@ export * from './AuditLog';
 export * from './ReservationLock';
 export * from './CustomerSavedLocation';
 export * from './VendorPayoutProfile';
+export * from './KYCVerification';
+export * from './OTPVerification';
+export * from './VendorDocument';

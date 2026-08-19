@@ -1,7 +1,13 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export type UserRole = 'CUSTOMER' | 'VENDOR' | 'ADMIN';
-export type KYCStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
+export type KYCStatus =
+  | 'NOT_STARTED'
+  | 'UNDER_REVIEW'
+  | 'VERIFIED'
+  | 'REJECTED'
+  | 'ACTION_REQUIRED'
+  | 'PENDING'; // Kept for backwards compatibility
 
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
@@ -15,8 +21,9 @@ export interface IUser extends Document {
   drivingLicenseStatus: KYCStatus;
   drivingLicenseNumber?: string;
   drivingLicenseExpiry?: Date;
-  idDocumentType?: 'AADHAAR' | 'PASSPORT' | 'VOTER_ID';
-  idDocumentNumber?: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  dateOfBirth?: Date;
   emergencyContact?: {
     name: string;
     phone: string;
@@ -47,18 +54,20 @@ const UserSchema = new Schema<IUser>(
     avatar: { type: String, default: '' },
     kycStatus: {
       type: String,
-      enum: ['PENDING', 'VERIFIED', 'REJECTED'],
-      default: 'PENDING',
+      enum: ['NOT_STARTED', 'UNDER_REVIEW', 'VERIFIED', 'REJECTED', 'ACTION_REQUIRED', 'PENDING'],
+      default: 'NOT_STARTED',
+      index: true,
     },
     drivingLicenseStatus: {
       type: String,
-      enum: ['PENDING', 'VERIFIED', 'REJECTED'],
-      default: 'PENDING',
+      enum: ['NOT_STARTED', 'UNDER_REVIEW', 'VERIFIED', 'REJECTED', 'ACTION_REQUIRED', 'PENDING'],
+      default: 'NOT_STARTED',
     },
     drivingLicenseNumber: { type: String, default: '' },
     drivingLicenseExpiry: { type: Date },
-    idDocumentType: { type: String, enum: ['AADHAAR', 'PASSPORT', 'VOTER_ID'] },
-    idDocumentNumber: { type: String, default: '' },
+    emailVerified: { type: Boolean, default: false },
+    phoneVerified: { type: Boolean, default: false },
+    dateOfBirth: { type: Date },
     emergencyContact: {
       name: { type: String, default: '' },
       phone: { type: String, default: '' },

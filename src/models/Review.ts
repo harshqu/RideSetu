@@ -1,5 +1,14 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+export type ReviewStatus = 'PUBLISHED' | 'HIDDEN' | 'FLAGGED';
+
+export interface IVendorReply {
+  text: string;
+  repliedAt: Date;
+  updatedAt?: Date;
+  repliedBy?: mongoose.Types.ObjectId;
+}
+
 export interface IReview extends Document {
   _id: mongoose.Types.ObjectId;
   bookingId: mongoose.Types.ObjectId;
@@ -12,16 +21,29 @@ export interface IReview extends Document {
   vehicleConditionRating: number;
   vendorBehaviorRating: number;
   pickupExperienceRating: number;
-  pricingTransparencyRating: number;
+  deliveryExperienceRating: number;
+  pricingTransparencyRating?: number;
   reviewText: string;
-  vendorReply?: {
-    text: string;
-    repliedAt: Date;
-  };
+  photos: string[];
+  status: ReviewStatus;
+  moderationReason?: string;
+  moderatedAt?: Date;
+  moderatedBy?: mongoose.Types.ObjectId;
+  vendorReply?: IVendorReply;
   isVerifiedRental: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const VendorReplySchema = new Schema<IVendorReply>(
+  {
+    text: { type: String, required: true, trim: true },
+    repliedAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date },
+    repliedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  },
+  { _id: false }
+);
 
 const ReviewSchema = new Schema<IReview>(
   {
@@ -35,12 +57,20 @@ const ReviewSchema = new Schema<IReview>(
     vehicleConditionRating: { type: Number, required: true, min: 1, max: 5 },
     vendorBehaviorRating: { type: Number, required: true, min: 1, max: 5 },
     pickupExperienceRating: { type: Number, required: true, min: 1, max: 5 },
-    pricingTransparencyRating: { type: Number, required: true, min: 1, max: 5 },
-    reviewText: { type: String, required: true },
-    vendorReply: {
-      text: { type: String },
-      repliedAt: { type: Date },
+    deliveryExperienceRating: { type: Number, required: true, min: 1, max: 5, default: 5 },
+    pricingTransparencyRating: { type: Number, min: 1, max: 5, default: 5 },
+    reviewText: { type: String, required: true, trim: true },
+    photos: [{ type: String }],
+    status: {
+      type: String,
+      enum: ['PUBLISHED', 'HIDDEN', 'FLAGGED'],
+      default: 'PUBLISHED',
+      index: true,
     },
+    moderationReason: { type: String, default: '' },
+    moderatedAt: { type: Date },
+    moderatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    vendorReply: { type: VendorReplySchema },
     isVerifiedRental: { type: Boolean, default: true },
   },
   {
@@ -48,8 +78,9 @@ const ReviewSchema = new Schema<IReview>(
   }
 );
 
-ReviewSchema.index({ vehicleId: 1, overallRating: -1 });
-ReviewSchema.index({ vendorId: 1, overallRating: -1 });
+ReviewSchema.index({ vehicleId: 1, status: 1, overallRating: -1 });
+ReviewSchema.index({ vendorId: 1, status: 1, overallRating: -1 });
+ReviewSchema.index({ customerId: 1, createdAt: -1 });
 
 export const Review: Model<IReview> =
   mongoose.models.Review || mongoose.model<IReview>('Review', ReviewSchema);

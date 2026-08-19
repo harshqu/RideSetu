@@ -3,3 +3,8 @@ export * from './availability.service';
 export * from './booking.service';
 export * from './payout.service';
 export * from './handover.service';
+export * from './payment.service';
+export * from './cancellation.service';
+export * from './notification.service';
+export * from './document-storage.service';
+export * from './kyc-provider.service';

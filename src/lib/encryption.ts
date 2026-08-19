@@ -181,3 +181,41 @@ export function validateCoordinates(
 
   return { isValid: true, lat: numLat, lng: numLng };
 }
+
+/**
+ * Masks a Driving Licence Number for safe UI presentation.
+ * Example: "UK0720230009876" -> "UK07 •••• •••• 9876"
+ */
+export function maskDrivingLicence(dlNumber: string): string {
+  if (!dlNumber || typeof dlNumber !== 'string') return '';
+  const cleaned = dlNumber.trim().toUpperCase().replace(/\s+/g, '');
+  if (cleaned.length < 8) return '•••• ••••';
+  const prefix = cleaned.slice(0, 4);
+  const suffix = cleaned.slice(-4);
+  return `${prefix} •••• •••• ${suffix}`;
+}
+
+/**
+ * Masks an Email Address for safe presentation.
+ * Example: "customer@ridesetu.demo" -> "c•••••••r@ridesetu.demo"
+ */
+export function maskEmail(email: string): string {
+  if (!email || !email.includes('@')) return '';
+  const [local, domain] = email.trim().toLowerCase().split('@');
+  if (local.length <= 2) return `${local[0] || '*'}*@${domain}`;
+  const maskedLocal = `${local[0]}${'•'.repeat(Math.min(6, local.length - 2))}${local[local.length - 1]}`;
+  return `${maskedLocal}@${domain}`;
+}
+
+/**
+ * Masks a Phone Number for safe presentation.
+ * Example: "+91 9876543210" -> "+91 ••••• •3210"
+ */
+export function maskPhone(phone: string): string {
+  if (!phone || typeof phone !== 'string') return '';
+  const cleaned = phone.replace(/[^0-9+]/g, '');
+  if (cleaned.length <= 4) return '••••';
+  const last4 = cleaned.slice(-4);
+  return `•••• ••• ${last4}`;
+}
+

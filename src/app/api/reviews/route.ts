@@ -5,20 +5,52 @@ import { Review } from '@/models/Review';
 import { Booking } from '@/models/Booking';
 import { Vehicle } from '@/models/Vehicle';
 import { Vendor } from '@/models/Vendor';
+import { NotificationService } from '@/services/notification.service';
 import { getSessionFromRequest } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const vehicleId = searchParams.get('vehicleId');
     const vendorId = searchParams.get('vendorId');
+    const aggregate = searchParams.get('aggregate') === 'true';
 
     await connectToDatabase();
-    const query: Record<string, unknown> = {};
+    const query: Record<string, unknown> = {
+      status: { $ne: 'HIDDEN' }, // Never show hidden reviews to public
+    };
     if (vehicleId) query.vehicleId = new mongoose.Types.ObjectId(vehicleId);
     if (vendorId) query.vendorId = new mongoose.Types.ObjectId(vendorId);
 
-    const reviews = await Review.find(query).sort({ createdAt: -1 }).limit(30).lean();
+    const reviews = await Review.find(query)
+      .populate('customerId', 'name')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    if (aggregate && reviews.length > 0) {
+      const count = reviews.length;
+      const avgOverall = reviews.reduce((sum, r) => sum + r.overallRating, 0) / count;
+      const avgVehicle = reviews.reduce((sum, r) => sum + (r.vehicleConditionRating || r.overallRating), 0) / count;
+      const avgVendor = reviews.reduce((sum, r) => sum + (r.vendorBehaviorRating || r.overallRating), 0) / count;
+      const avgPickup = reviews.reduce((sum, r) => sum + (r.pickupExperienceRating || r.overallRating), 0) / count;
+      const avgDelivery = reviews.reduce((sum, r) => sum + (r.deliveryExperienceRating || r.overallRating), 0) / count;
+
+      return NextResponse.json({
+        reviews,
+        summary: {
+          totalReviews: count,
+          overallRating: parseFloat(avgOverall.toFixed(1)),
+          vehicleConditionRating: parseFloat(avgVehicle.toFixed(1)),
+          vendorBehaviorRating: parseFloat(avgVendor.toFixed(1)),
+          pickupExperienceRating: parseFloat(avgPickup.toFixed(1)),
+          deliveryExperienceRating: parseFloat(avgDelivery.toFixed(1)),
+        },
+      });
+    }
+
     return NextResponse.json({ reviews });
   } catch (error: any) {
     console.error('[API Reviews GET Error]:', error);
@@ -40,12 +72,28 @@ export async function POST(request: Request) {
       vehicleConditionRating,
       vendorBehaviorRating,
       pickupExperienceRating,
-      pricingTransparencyRating,
+      deliveryExperienceRating,
       reviewText,
+      photos = [],
     } = body;
 
     if (!bookingId || !overallRating || !reviewText) {
       return NextResponse.json({ error: 'Booking ID, rating, and review text are required.' }, { status: 400 });
+    }
+
+    // Strict 1-5 rating validation
+    const numOverall = Number(overallRating);
+    const numVehicle = Number(vehicleConditionRating || overallRating);
+    const numVendor = Number(vendorBehaviorRating || overallRating);
+    const numPickup = Number(pickupExperienceRating || overallRating);
+    const numDelivery = Number(deliveryExperienceRating || overallRating);
+
+    if (
+      [numOverall, numVehicle, numVendor, numPickup, numDelivery].some(
+        (val) => isNaN(val) || val < 1 || val > 5
+      )
+    ) {
+      return NextResponse.json({ error: 'Rating values must be between 1 and 5.' }, { status: 400 });
     }
 
     await connectToDatabase();
@@ -67,24 +115,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'You have already reviewed this booking.' }, { status: 409 });
     }
 
+    // Server derives verified ride status strictly from the completed booking relation
     const review = await Review.create({
       bookingId: booking._id,
       customerId: booking.customerId,
-      customerName: session.name,
-      customerAvatar: session.role === 'CUSTOMER' ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80' : '',
+      customerName: session.name || 'Verified Rider',
+      customerAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
       vehicleId: booking.vehicleId,
       vendorId: booking.vendorId,
-      overallRating: Number(overallRating),
-      vehicleConditionRating: Number(vehicleConditionRating || overallRating),
-      vendorBehaviorRating: Number(vendorBehaviorRating || overallRating),
-      pickupExperienceRating: Number(pickupExperienceRating || overallRating),
-      pricingTransparencyRating: Number(pricingTransparencyRating || overallRating),
+      overallRating: numOverall,
+      vehicleConditionRating: numVehicle,
+      vendorBehaviorRating: numVendor,
+      pickupExperienceRating: numPickup,
+      deliveryExperienceRating: numDelivery,
       reviewText: reviewText.trim(),
-      isVerifiedRental: true,
+      photos: Array.isArray(photos) ? photos : [],
+      status: 'PUBLISHED',
+      isVerifiedRental: true, // Derived server-side
     });
 
-    // Re-calculate Vehicle & Vendor ratings
-    const vehicleReviews = await Review.find({ vehicleId: booking.vehicleId }).select('overallRating');
+    // Re-calculate Vehicle & Vendor ratings server-side
+    const vehicleReviews = await Review.find({ vehicleId: booking.vehicleId, status: { $ne: 'HIDDEN' } }).select('overallRating');
     const avgVehicleRating =
       vehicleReviews.reduce((acc, r) => acc + r.overallRating, 0) / vehicleReviews.length;
 
@@ -93,7 +144,7 @@ export async function POST(request: Request) {
       totalReviews: vehicleReviews.length,
     });
 
-    const vendorReviews = await Review.find({ vendorId: booking.vendorId }).select('overallRating');
+    const vendorReviews = await Review.find({ vendorId: booking.vendorId, status: { $ne: 'HIDDEN' } }).select('overallRating');
     const avgVendorRating =
       vendorReviews.reduce((acc, r) => acc + r.overallRating, 0) / vendorReviews.length;
 
@@ -102,7 +153,20 @@ export async function POST(request: Request) {
       totalReviews: vendorReviews.length,
     });
 
-    return NextResponse.json({ success: true, review, message: 'Review submitted successfully!' });
+    // Notify vendor
+    const vendor = await Vendor.findById(booking.vendorId).select('userId');
+    const vehicle = await Vehicle.findById(booking.vehicleId).select('brand model');
+    if (vendor && vehicle) {
+      await NotificationService.sendNewReviewAlertToVendor({
+        vendorUserId: vendor.userId.toString(),
+        vehicleName: `${vehicle.brand} ${vehicle.model}`,
+        rating: numOverall,
+        customerName: session.name || 'A customer',
+        bookingId: booking._id.toString(),
+      });
+    }
+
+    return NextResponse.json({ success: true, review, message: 'Verified review submitted successfully!' });
   } catch (error: any) {
     console.error('[API Reviews POST Error]:', error);
     return NextResponse.json({ error: error.message || 'Failed to submit review' }, { status: 500 });

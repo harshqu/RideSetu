@@ -1,19 +1,29 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export type NotificationType =
-  | 'BOOKING_CONFIRMED'
-  | 'BOOKING_CANCELLED'
-  | 'PAYMENT_SUCCESS'
-  | 'PAYMENT_FAILED'
-  | 'PICKUP_REMINDER'
-  | 'RETURN_REMINDER'
+  | 'ACCOUNT_VERIFIED'
   | 'KYC_APPROVED'
   | 'KYC_REJECTED'
   | 'VENDOR_APPROVED'
   | 'VEHICLE_APPROVED'
-  | 'PAYOUT_PROCESSED'
-  | 'REVIEW_REMINDER'
+  | 'BOOKING_CREATED'
+  | 'PAYMENT_SUCCESS'
+  | 'PAYMENT_FAILED'
+  | 'BOOKING_CONFIRMED'
+  | 'BOOKING_CANCELLED'
+  | 'REFUND_INITIATED'
+  | 'REFUND_COMPLETED'
+  | 'RIDE_STARTING_SOON'
+  | 'RIDE_ACTIVE'
+  | 'RIDE_COMPLETED'
+  | 'REVIEW_REQUEST'
+  | 'NEW_REVIEW'
+  | 'VENDOR_RESPONSE'
+  | 'PAYOUT_ELIGIBLE'
+  | 'PAYOUT_COMPLETED'
   | 'DISPUTE_UPDATE'
+  | 'PICKUP_REMINDER'
+  | 'RETURN_REMINDER'
   | 'EMERGENCY_ALERT';
 
 export interface INotification extends Document {
@@ -24,6 +34,7 @@ export interface INotification extends Document {
   type: NotificationType;
   read: boolean;
   link?: string;
+  relatedBookingId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,30 +47,44 @@ const NotificationSchema = new Schema<INotification>(
     type: {
       type: String,
       enum: [
-        'BOOKING_CONFIRMED',
-        'BOOKING_CANCELLED',
-        'PAYMENT_SUCCESS',
-        'PAYMENT_FAILED',
-        'PICKUP_REMINDER',
-        'RETURN_REMINDER',
+        'ACCOUNT_VERIFIED',
         'KYC_APPROVED',
         'KYC_REJECTED',
         'VENDOR_APPROVED',
         'VEHICLE_APPROVED',
-        'PAYOUT_PROCESSED',
-        'REVIEW_REMINDER',
+        'BOOKING_CREATED',
+        'PAYMENT_SUCCESS',
+        'PAYMENT_FAILED',
+        'BOOKING_CONFIRMED',
+        'BOOKING_CANCELLED',
+        'REFUND_INITIATED',
+        'REFUND_COMPLETED',
+        'RIDE_STARTING_SOON',
+        'RIDE_ACTIVE',
+        'RIDE_COMPLETED',
+        'REVIEW_REQUEST',
+        'NEW_REVIEW',
+        'VENDOR_RESPONSE',
+        'PAYOUT_ELIGIBLE',
+        'PAYOUT_COMPLETED',
         'DISPUTE_UPDATE',
+        'PICKUP_REMINDER',
+        'RETURN_REMINDER',
         'EMERGENCY_ALERT',
       ],
       required: true,
+      index: true,
     },
     read: { type: Boolean, default: false, index: true },
     link: { type: String, default: '' },
+    relatedBookingId: { type: Schema.Types.ObjectId, ref: 'Booking', index: true },
   },
   {
     timestamps: true,
   }
 );
+
+NotificationSchema.index({ userId: 1, read: 1, createdAt: -1 });
 
 export const Notification: Model<INotification> =
   mongoose.models.Notification ||

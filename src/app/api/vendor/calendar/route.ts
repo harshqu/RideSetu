@@ -1,9 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectToDatabase from '@/lib/mongodb';
+import { Vehicle } from '@/models/Vehicle';
+import { Vendor } from '@/models/Vendor';
 import { VehicleAvailability } from '@/models/VehicleAvailability';
 import { AvailabilityService } from '@/services/availability.service';
 import { getSessionFromRequest, assertRole } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
@@ -32,9 +36,11 @@ export async function POST(request: Request) {
   try {
     const session = getSessionFromRequest(request);
     const authCheck = assertRole(session, ['VENDOR', 'ADMIN']);
-    if (!authCheck.authorized) {
+    if (!authCheck.authorized || !session) {
       return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
     }
+
+    await connectToDatabase();
 
     const { vehicleId, startDate, endDate, reason = 'MANUAL_BLOCK', notes } = await request.json();
 
@@ -42,18 +48,42 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Vehicle ID and dates required' }, { status: 400 });
     }
 
-    const block = await AvailabilityService.blockDates({
-      vehicleId,
-      startDate,
-      endDate,
-      reason,
-      notes,
-    });
+    // RBAC: Verify vendor owns this vehicle
+    if (session.role === 'VENDOR') {
+      let vendorId = session.vendorId;
+      if (!vendorId) {
+        const v = await Vendor.findOne({ userId: session.userId });
+        vendorId = v?._id.toString();
+      }
+      const vehicle = await Vehicle.findById(vehicleId);
+      if (!vehicle || vehicle.vendorId.toString() !== vendorId) {
+        return NextResponse.json({ error: 'Forbidden: You do not own this vehicle.' }, { status: 403 });
+      }
+    }
 
-    return NextResponse.json({ success: true, block, message: 'Dates blocked successfully.' });
+    try {
+      const block = await AvailabilityService.blockDates({
+        vehicleId,
+        startDate,
+        endDate,
+        reason,
+        notes,
+      });
+
+      return NextResponse.json({ success: true, block, message: 'Dates blocked successfully.' });
+    } catch (blockErr: any) {
+      // Conflict with confirmed bookings or existing blocks
+      return NextResponse.json(
+        {
+          error: blockErr.message || 'Cannot block dates due to overlapping booking conflict.',
+          conflict: true,
+        },
+        { status: 409 }
+      );
+    }
   } catch (error: any) {
     console.error('[API Vendor Calendar POST Error]:', error);
-    return NextResponse.json({ error: error.message || 'Failed to block dates' }, { status: 400 });
+    return NextResponse.json({ error: error.message || 'Failed to block dates' }, { status: 500 });
   }
 }
 
