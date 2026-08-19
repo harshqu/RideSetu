@@ -9,7 +9,7 @@ interface MountainValleyProps {
 export const MountainValley: React.FC<MountainValleyProps> = ({ offsetX = 0 }) => {
   return (
     <div
-      className="absolute bottom-[16%] sm:bottom-[13%] left-0 w-full h-[22%] sm:h-[28%] pointer-events-none select-none transition-transform duration-300 ease-out"
+      className="absolute bottom-[16%] sm:bottom-[13%] left-0 w-full max-w-full h-[22%] sm:h-[28%] pointer-events-none select-none overflow-hidden transition-transform duration-300 ease-out"
       style={{
         transform: `translate3d(${offsetX}px, 0, 0)`,
       }}
@@ -58,15 +58,12 @@ export const MountainValley: React.FC<MountainValleyProps> = ({ offsetX = 0 }) =
 
         {/* Distant Mountain Settlement Warm Lights */}
         <circle cx="510" cy="148" r="2" fill="#FBBF24" opacity="0.9" className="animate-pulse" />
-        <circle cx="522" cy="145" r="2.5" fill="#F59E0B" opacity="0.8" />
-        <circle cx="538" cy="150" r="1.5" fill="#FEF08A" opacity="0.9" />
-
-        <circle cx="860" cy="138" r="2" fill="#FBBF24" opacity="0.85" />
-        <circle cx="875" cy="142" r="2.5" fill="#F59E0B" opacity="0.9" className="animate-pulse" />
-        <circle cx="890" cy="136" r="1.5" fill="#FEF08A" opacity="0.75" />
-
-        <circle cx="1220" cy="128" r="2" fill="#FBBF24" opacity="0.9" />
-        <circle cx="1235" cy="132" r="2.5" fill="#F59E0B" opacity="0.8" className="animate-pulse" />
+        <circle cx="530" cy="152" r="1.5" fill="#F59E0B" opacity="0.8" />
+        <circle cx="545" cy="149" r="2" fill="#FDE047" opacity="0.95" />
+        <circle cx="920" cy="155" r="2" fill="#FBBF24" opacity="0.85" className="animate-pulse" />
+        <circle cx="940" cy="159" r="1.5" fill="#F59E0B" opacity="0.9" />
+        <circle cx="1140" cy="162" r="2" fill="#FBBF24" opacity="0.9" className="animate-pulse" />
+        <circle cx="1160" cy="166" r="1.5" fill="#FDE047" opacity="0.8" />
       </svg>
     </div>
   );

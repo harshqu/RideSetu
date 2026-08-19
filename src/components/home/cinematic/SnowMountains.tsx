@@ -9,7 +9,7 @@ interface SnowMountainsProps {
 export const SnowMountains: React.FC<SnowMountainsProps> = ({ offsetX = 0 }) => {
   return (
     <div
-      className="absolute bottom-[30%] sm:bottom-[28%] left-0 w-full h-[40%] sm:h-[48%] pointer-events-none select-none transition-transform duration-300 ease-out"
+      className="absolute bottom-[30%] sm:bottom-[28%] left-0 w-full max-w-full h-[40%] sm:h-[48%] pointer-events-none select-none overflow-hidden transition-transform duration-300 ease-out"
       style={{
         transform: `translate3d(${offsetX}px, 0, 0)`,
       }}
@@ -59,47 +59,43 @@ export const SnowMountains: React.FC<SnowMountainsProps> = ({ offsetX = 0 }) => 
         <polygon
           points="460,110 490,195 530,220 720,480 460,480"
           fill="#0F172A"
+          opacity="0.35"
+        />
+
+        {/* --- Main High Snow Peak (Center - Nanda Devi silhouette) --- */}
+        <polygon
+          points="580,480 880,80 1180,480"
+          fill="url(#snowPeakGrad1)"
+        />
+        {/* Nanda Devi Snow Cap & Crevasses */}
+        <polygon
+          points="880,80 800,200 840,190 880,225 930,185 970,215"
+          fill="url(#snowCapGrad)"
+        />
+        {/* Sunset Ridge Rim Light */}
+        <polygon
+          points="880,80 800,200 840,190 880,225"
+          fill="url(#sunsetRimLight)"
+        />
+        <polygon
+          points="880,80 930,185 970,215 1180,480 880,480"
+          fill="#0F172A"
           opacity="0.4"
         />
 
-        {/* --- Center Dominant Peak (Nanda Devi inspired silhouette) --- */}
+        {/* --- Secondary Peak (Right - Panchachuli silhouette) --- */}
         <polygon
-          points="620,500 920,60 1240,500"
-          fill="url(#snowPeakGrad1)"
-        />
-        {/* Nanda Devi Snow Cap */}
-        <polygon
-          points="920,60 840,170 875,160 920,200 965,155 1010,185"
-          fill="url(#snowCapGrad)"
-        />
-        {/* Snow Glaciers descending */}
-        <polygon
-          points="920,60 965,155 1010,185 1240,500 920,500"
-          fill="#0F172A"
-          opacity="0.45"
-        />
-        {/* Golden Sun Rim Light on Nanda Devi Ridge */}
-        <path
-          d="M920,60 L1240,500"
-          stroke="url(#sunsetRimLight)"
-          strokeWidth="6"
-          strokeLinecap="round"
-          opacity="0.75"
-        />
-
-        {/* --- Right Peak (Shivling silhouette) --- */}
-        <polygon
-          points="1140,500 1380,130 1600,480"
+          points="1060,480 1300,130 1540,480"
           fill="url(#snowPeakGrad1)"
         />
         <polygon
-          points="1380,130 1310,230 1350,215 1380,245 1430,210 1470,235"
+          points="1300,130 1240,210 1275,200 1300,230 1335,195 1370,215"
           fill="url(#snowCapGrad)"
         />
         <polygon
-          points="1380,130 1430,210 1470,235 1600,480 1380,480"
+          points="1300,130 1335,195 1370,215 1540,480 1300,480"
           fill="#0F172A"
-          opacity="0.4"
+          opacity="0.35"
         />
       </svg>
     </div>

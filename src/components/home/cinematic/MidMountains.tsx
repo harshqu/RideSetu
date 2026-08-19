@@ -9,7 +9,7 @@ interface MidMountainsProps {
 export const MidMountains: React.FC<MidMountainsProps> = ({ offsetX = 0 }) => {
   return (
     <div
-      className="absolute bottom-[22%] sm:bottom-[18%] left-0 w-full h-[36%] sm:h-[42%] pointer-events-none select-none transition-transform duration-300 ease-out"
+      className="absolute bottom-[22%] sm:bottom-[18%] left-0 w-full max-w-full h-[36%] sm:h-[42%] pointer-events-none select-none overflow-hidden transition-transform duration-300 ease-out"
       style={{
         transform: `translate3d(${offsetX}px, 0, 0)`,
       }}

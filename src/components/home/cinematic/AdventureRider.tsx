@@ -9,17 +9,17 @@ interface AdventureRiderProps {
 export const AdventureRider: React.FC<AdventureRiderProps> = ({ offsetX = 0 }) => {
   return (
     <div
-      className="absolute bottom-4 sm:bottom-7 right-[8%] sm:right-[16%] md:right-[22%] z-20 pointer-events-none select-none transition-transform duration-300 ease-out"
+      className="absolute bottom-3 sm:bottom-6 right-3 sm:right-[12%] md:right-[18%] z-20 pointer-events-none select-none transition-transform duration-300 ease-out max-w-full overflow-hidden"
       style={{
         transform: `translate3d(${offsetX}px, 0, 0)`,
       }}
     >
-      <div className="relative animate-bike-suspension origin-bottom transform scale-100 sm:scale-125 md:scale-140 drop-shadow-[0_20px_25px_rgba(0,0,0,0.7)]">
-        {/* 1. Powerful LED Headlight Beam Cone Casting on Asphalt Ahead */}
-        <div className="absolute -right-44 -top-8 w-60 sm:w-80 h-24 sm:h-32 bg-gradient-to-r from-amber-300/50 via-amber-400/20 to-transparent blur-md transform rotate-[8deg] pointer-events-none rounded-r-full" />
-        <div className="absolute -right-24 -top-2 w-32 h-14 bg-amber-200/40 blur-sm transform rotate-[8deg] pointer-events-none rounded-r-full" />
+      <div className="relative animate-bike-suspension origin-bottom transform scale-[0.85] sm:scale-110 md:scale-130 drop-shadow-[0_16px_20px_rgba(0,0,0,0.75)]">
+        {/* 1. Powerful LED Headlight Beam Cone Casting on Asphalt Ahead (Contained) */}
+        <div className="absolute -right-24 -top-6 w-36 sm:w-60 h-20 sm:h-28 bg-gradient-to-r from-amber-300/50 via-amber-400/20 to-transparent blur-md transform rotate-[6deg] pointer-events-none rounded-r-full" />
+        <div className="absolute -right-12 -top-1 w-20 h-10 bg-amber-200/40 blur-sm transform rotate-[6deg] pointer-events-none rounded-r-full" />
 
-        {/* 2. Hero Motorcycle & Adventurer Rider Vector (2.5x Size) */}
+        {/* 2. Hero Motorcycle & Adventurer Rider Vector */}
         <svg
           width="160"
           height="115"
@@ -115,8 +115,8 @@ export const AdventureRider: React.FC<AdventureRiderProps> = ({ offsetX = 0 }) =
         </svg>
 
         {/* 3. Atmospheric Road Dust & Exhaust Particle Puffs */}
-        <div className="absolute -left-4 bottom-2 w-4 h-4 rounded-full bg-slate-300/25 blur-[2px] animate-ping-slow" />
-        <div className="absolute -left-8 bottom-3 w-3 h-3 rounded-full bg-amber-400/20 blur-[2px] animate-ping-slow delay-150" />
+        <div className="absolute -left-3 bottom-2 w-3.5 h-3.5 rounded-full bg-slate-300/25 blur-[1.5px] animate-ping-slow" />
+        <div className="absolute -left-6 bottom-3 w-2.5 h-2.5 rounded-full bg-amber-400/20 blur-[1.5px] animate-ping-slow delay-150" />
       </div>
     </div>
   );

@@ -20,7 +20,7 @@ export const CinematicHero: React.FC = () => {
 
   useEffect(() => {
     try {
-      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 768);
 
       const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
       setPrefersReducedMotion(mediaQuery.matches);
@@ -51,23 +51,23 @@ export const CinematicHero: React.FC = () => {
 
   if (hasError) {
     return (
-      <div className="absolute inset-0 w-full h-full bg-gradient-to-b from-[#071426] via-[#16324F] to-navy-950 pointer-events-none" />
+      <div className="absolute inset-0 w-full max-w-full h-full bg-gradient-to-b from-[#071426] via-[#16324F] to-navy-950 pointer-events-none" />
     );
   }
 
   // Calculate subtle layer offsets (Desktop only)
-  const snowOffset = prefersReducedMotion ? 0 : mouseOffset.x * -3;
-  const midOffset = prefersReducedMotion ? 0 : mouseOffset.x * -6;
-  const valleyOffset = prefersReducedMotion ? 0 : mouseOffset.x * -8;
-  const forestOffset = prefersReducedMotion ? 0 : mouseOffset.x * -11;
-  const roadOffset = prefersReducedMotion ? 0 : mouseOffset.x * -5;
-  const riderOffset = prefersReducedMotion ? 0 : mouseOffset.x * 4;
-  const fgOffset = prefersReducedMotion ? 0 : mouseOffset.x * 14;
+  const snowOffset = isTouchDevice || prefersReducedMotion ? 0 : mouseOffset.x * -3;
+  const midOffset = isTouchDevice || prefersReducedMotion ? 0 : mouseOffset.x * -6;
+  const valleyOffset = isTouchDevice || prefersReducedMotion ? 0 : mouseOffset.x * -8;
+  const forestOffset = isTouchDevice || prefersReducedMotion ? 0 : mouseOffset.x * -11;
+  const roadOffset = isTouchDevice || prefersReducedMotion ? 0 : mouseOffset.x * -5;
+  const riderOffset = isTouchDevice || prefersReducedMotion ? 0 : mouseOffset.x * 4;
+  const fgOffset = isTouchDevice || prefersReducedMotion ? 0 : mouseOffset.x * 14;
 
   return (
     <div
       onMouseMove={handleMouseMove}
-      className={`absolute inset-0 w-full h-full pointer-events-none overflow-hidden select-none ${
+      className={`absolute inset-0 w-full max-w-full h-full pointer-events-none overflow-hidden select-none ${
         prefersReducedMotion ? 'reduce-motion-static' : ''
       }`}
       aria-hidden="true"
@@ -103,8 +103,8 @@ export const CinematicHero: React.FC = () => {
       <ForegroundLayer offsetX={fgOffset} />
 
       {/* Dark Vignette & Top Navbar Gradient Overlay for Crisp Text Contrast */}
-      <div className="absolute inset-0 bg-gradient-to-b from-navy-950/70 via-navy-950/20 to-navy-950/90 pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(6,13,23,0.65)_100%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-navy-950/75 via-navy-950/25 to-navy-950/90 pointer-events-none w-full h-full" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(6,13,23,0.65)_100%)] pointer-events-none w-full h-full" />
     </div>
   );
 };

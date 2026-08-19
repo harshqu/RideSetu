@@ -17,13 +17,23 @@
   --emerald-600: #059669;
 }
 
+html,
 body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
   color: #0f172a;
   background-color: #f8fafc;
   font-family: var(--font-sans);
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 /* Typography Overrides */
@@ -48,6 +58,15 @@ h1, h2, h3, h4, .font-heading {
   background: #94a3b8;
 }
 
+/* Hide scrollbar for tabs */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Premium Surface Classes */
 .card-premium {
   background: #ffffff;
@@ -68,10 +87,10 @@ h1, h2, h3, h4, .font-heading {
 
 .glass-panel {
   background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 10px 30px -10px rgba(11, 19, 43, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 20px 40px -15px rgba(6, 13, 23, 0.35);
 }
 
 .glass-dark {
@@ -209,6 +228,15 @@ h1, h2, h3, h4, .font-heading {
   }
 }
 
+@keyframes foregroundTravel {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
 @keyframes parallaxMid {
   0%, 100% {
     transform: translateX(0);
@@ -319,6 +347,10 @@ h1, h2, h3, h4, .font-heading {
   animation: birdsFlightDelayed 28s ease-in-out 10s infinite;
 }
 
+.animate-foreground-travel {
+  animation: foregroundTravel 10s linear infinite;
+}
+
 .animate-parallax-mid {
   animation: parallaxMid 18s ease-in-out infinite;
 }
@@ -377,6 +409,7 @@ h1, h2, h3, h4, .font-heading {
   .animate-cloud-drift-slow,
   .animate-birds-flight,
   .animate-birds-flight-delayed,
+  .animate-foreground-travel,
   .animate-parallax-mid,
   .animate-parallax-near,
   .animate-ping-slow,
