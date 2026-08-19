@@ -18,11 +18,13 @@ async function runVisualQA() {
     '/destinations/dehradun',
     '/destinations/nainital',
     '/destinations/haridwar',
-    '/destinations/haldwani'
+    '/destinations/haldwani',
+    '/manifest.webmanifest',
+    '/api/health',
   ];
 
   console.log('====================================================');
-  console.log('  RideSetu Visual QA & Route Availability Test');
+  console.log('  RideSetu Visual QA, PWA & Health Check Test');
   console.log('====================================================\n');
 
   let passed = 0;
@@ -47,7 +49,7 @@ async function runVisualQA() {
   }
 
   console.log('\n====================================================');
-  console.log(`  Visual QA Routes Tested: ${passed}/${routes.length} OK (${failed === 0 ? '100% PASS' : 'FAIL'})`);
+  console.log(`  Routes Tested: ${passed}/${routes.length} OK (${failed === 0 ? '100% PASS' : 'FAIL'})`);
   console.log('====================================================');
 }
 

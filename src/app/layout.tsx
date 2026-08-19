@@ -6,6 +6,8 @@ import DemoRoleBar from '@/components/common/DemoRoleBar';
 import Navbar from '@/components/common/Navbar';
 import CompareDrawer from '@/components/marketplace/CompareDrawer';
 import Footer from '@/components/common/Footer';
+import NetworkStatus from '@/components/common/NetworkStatus';
+import InstallPrompt from '@/components/pwa/InstallPrompt';
 
 export const viewport: Viewport = {
   themeColor: '#FF6B00',
@@ -16,11 +18,11 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'RideSetu — Himalayan Travel Mobility & Vehicle Rental Marketplace',
+    default: 'RideSetu — Verified Bike & Car Rentals in Uttarakhand',
     template: '%s | RideSetu',
   },
   description:
-    'Compare and book verified rental bikes, scooters, and self-drive cars from certified local partners across Rishikesh, Mussoorie, Dehradun, Nainital, and Haridwar with 100% deposit protection.',
+    'Book verified bikes, scooters and self-drive cars across Rishikesh, Mussoorie, Dehradun, Haridwar and Nainital with transparent prices and 100% deposit protection.',
   keywords: [
     'bike rental rishikesh',
     'scooty rental mussoorie',
@@ -40,12 +42,12 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_IN',
     siteName: 'RideSetu',
-    title: 'RideSetu — Verified Travel Mobility Marketplace',
-    description: 'One Place. Every Ride. Every Destination. Compare transparent rental rates and book verified bikes and cars.',
+    title: 'RideSetu — Verified Bike & Car Rentals in Uttarakhand',
+    description: 'Book verified bikes, scooters and self-drive cars across Rishikesh, Mussoorie, Dehradun, Haridwar and Nainital.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'RideSetu — Verified Travel Mobility Marketplace',
+    title: 'RideSetu — Verified Bike & Car Rentals in Uttarakhand',
     description: 'Book verified bikes, scooties, and cars across Uttarakhand travel hubs with 360° digital handover.',
   },
 };
@@ -68,10 +70,12 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col antialiased selection:bg-brand-orange selection:text-white">
         <AuthProvider>
           <CompareProvider>
+            <NetworkStatus />
             <DemoRoleBar />
             <Navbar />
             <main className="flex-1">{children}</main>
             <CompareDrawer />
+            <InstallPrompt />
             <Footer />
           </CompareProvider>
         </AuthProvider>
