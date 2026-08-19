@@ -25,6 +25,8 @@ import {
   ChevronLeft,
   Lock,
   Zap,
+  Edit3,
+  RefreshCw,
 } from 'lucide-react';
 
 function BookingFlowContent() {
@@ -40,6 +42,9 @@ function BookingFlowContent() {
   const [vehicle, setVehicle] = useState<any>(null);
   const [pricing, setPricing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [priceUpdating, setPriceUpdating] = useState(false);
+  const [isDateAvailable, setIsDateAvailable] = useState(true);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Form fields
@@ -66,12 +71,15 @@ function BookingFlowContent() {
   const [emergencyPhone, setEmergencyPhone] = useState(user?.emergencyContact?.phone || '+91 98765 43219');
   const [emergencyRelation, setEmergencyRelation] = useState(user?.emergencyContact?.relation || 'Brother');
   const [couponCode, setCouponCode] = useState('');
+  const [kycStatusData, setKycStatusData] = useState<any>(null);
 
   const [isPaymentOpen, setPaymentOpen] = useState(false);
+  const [orderData, setOrderData] = useState<any>(null);
+  const [initiatingPayment, setInitiatingPayment] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch Vehicle and Saved Locations
+  // Fetch Vehicle, Saved Locations, and KYC Status
   useEffect(() => {
     const fetchVehicle = async () => {
       try {
@@ -100,16 +108,39 @@ function BookingFlowContent() {
       }
     };
 
+    const fetchKycStatus = async () => {
+      try {
+        const res = await fetch('/api/customer/kyc/status');
+        if (res.ok) {
+          const data = await res.json();
+          setKycStatusData(data);
+          if (data.maskedLicenceNumber) {
+            setDlNumber(data.maskedLicenceNumber);
+          }
+        }
+      } catch {
+        // Continue
+      }
+    };
+
     if (vehicleId) {
       fetchVehicle();
       fetchSavedLocations();
+      fetchKycStatus();
     }
   }, [vehicleId]);
 
-  // Recalculate Pricing via Server Endpoint
+  // Recalculate Pricing via Server Endpoint whenever trip parameters change
   const calculateServerPrice = useCallback(async (coupon?: string) => {
     if (!vehicle) return;
     try {
+      setPriceUpdating(true);
+      setError(null);
+      setAvailabilityError(null);
+      // Invalidate stale payment orders when trip parameters change
+      setOrderData(null);
+      setPaymentOpen(false);
+
       const pDateTime = `${pickupDate}T${pickupTime}:00`;
       const rDateTime = `${returnDate}T${returnTime}:00`;
 
@@ -128,9 +159,22 @@ function BookingFlowContent() {
       const data = await res.json();
       if (data.success && data.pricing) {
         setPricing(data.pricing);
+        if (data.available === false) {
+          setIsDateAvailable(false);
+          setAvailabilityError(data.availabilityReason || 'Selected vehicle is not available for these dates.');
+        } else {
+          setIsDateAvailable(true);
+          setAvailabilityError(null);
+        }
+      } else if (data.error) {
+        setAvailabilityError(data.error);
+        setIsDateAvailable(false);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Price calculation error:', err);
+      setAvailabilityError(err.message || 'Failed to update pricing.');
+    } finally {
+      setPriceUpdating(false);
     }
   }, [vehicle, pickupDate, pickupTime, returnDate, returnTime, pickupType, couponCode]);
 
@@ -165,9 +209,45 @@ function BookingFlowContent() {
     }
   };
 
-  const handlePaymentComplete = async (paymentDetails: { method: any; status: string }) => {
+  const handleInitiatePayment = async () => {
+    try {
+      setError(null);
+      setInitiatingPayment(true);
+      const res = await fetch('/api/payments/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vehicleId: vehicle._id,
+          pickupDateTime: `${pickupDate}T${pickupTime}:00`,
+          returnDateTime: `${returnDate}T${returnTime}:00`,
+          pickupType,
+          couponCode,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create payment order');
+      }
+
+      setOrderData(data.order);
+      setPaymentOpen(true);
+    } catch (err: any) {
+      setError(err.message || 'Unable to proceed to payment');
+    } finally {
+      setInitiatingPayment(false);
+    }
+  };
+
+  const handlePaymentComplete = async (paymentDetails: {
+    method: any;
+    status: string;
+    razorpayOrderId?: string;
+    razorpayPaymentId?: string;
+    razorpaySignature?: string;
+  }) => {
     if (paymentDetails.status !== 'SUCCESS') {
-      alert('Payment simulation reported failure. Please retry.');
+      setError('Payment was not completed. Your booking has not been confirmed.');
       setPaymentOpen(false);
       return;
     }
@@ -176,42 +256,49 @@ function BookingFlowContent() {
       setError(null);
       const pickupLoc = deliveryLocationData?.formattedAddress || (pickupType === 'HOTEL_DELIVERY' ? hotelAddress : pickupLocation);
 
-      const res = await fetch('/api/bookings', {
+      const bookingPayload = {
+        vehicleId: vehicle._id,
+        pickupDateTime: `${pickupDate}T${pickupTime}:00`,
+        returnDateTime: `${returnDate}T${returnTime}:00`,
+        pickupType,
+        pickupLocation: pickupLoc,
+        dropoffLocation: pickupLoc,
+        deliveryLocation: deliveryLocationData || undefined,
+        customerDetails: {
+          fullName,
+          phone,
+          email,
+          drivingLicenseNumber: dlNumber,
+        },
+        emergencyContact: {
+          name: emergencyName,
+          phone: emergencyPhone,
+          relation: emergencyRelation,
+        },
+        couponCode,
+        paymentMethod: paymentDetails.method,
+      };
+
+      const res = await fetch('/api/payments/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          vehicleId: vehicle._id,
-          pickupDateTime: `${pickupDate}T${pickupTime}:00`,
-          returnDateTime: `${returnDate}T${returnTime}:00`,
-          pickupType,
-          pickupLocation: pickupLoc,
-          dropoffLocation: pickupLoc,
-          deliveryLocation: deliveryLocationData || undefined,
-          customerDetails: {
-            fullName,
-            phone,
-            email,
-            drivingLicenseNumber: dlNumber,
-          },
-          emergencyContact: {
-            name: emergencyName,
-            phone: emergencyPhone,
-            relation: emergencyRelation,
-          },
-          couponCode,
-          paymentMethod: paymentDetails.method,
+          razorpayOrderId: paymentDetails.razorpayOrderId || orderData?.orderId,
+          razorpayPaymentId: paymentDetails.razorpayPaymentId,
+          razorpaySignature: paymentDetails.razorpaySignature,
+          bookingData: bookingPayload,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Booking reservation failed');
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Payment verification failed');
       }
 
       setConfirmedBooking(data.booking);
       setPaymentOpen(false);
     } catch (err: any) {
-      setError(err.message || 'Booking submission failed');
+      setError(err.message || 'Payment verification and confirmation failed');
       setPaymentOpen(false);
     }
   };
@@ -220,7 +307,7 @@ function BookingFlowContent() {
     return (
       <div className="max-w-4xl mx-auto p-16 text-center text-slate-500">
         <div className="inline-block w-8 h-8 border-4 border-brand-orange border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-2 text-sm">Preparing secure booking checkout...</p>
+        <p className="mt-2 text-sm font-semibold">Preparing secure booking checkout...</p>
       </div>
     );
   }
@@ -241,26 +328,33 @@ function BookingFlowContent() {
 
       {/* Progress Steps Header */}
       <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between relative">
-          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 -translate-y-1/2 z-0"></div>
+        {/* Desktop Stepper */}
+        <div className="hidden sm:flex items-center justify-between relative">
+          <div className="absolute top-1/2 left-8 right-8 h-1 bg-slate-200 -translate-y-1/2 z-0 rounded-full"></div>
           {[
             { s: 1, label: 'Trip & Delivery' },
             { s: 2, label: 'Traveller & KYC' },
             { s: 3, label: 'Review & Pay' },
           ].map((item) => (
-            <div key={item.s} className="relative z-10 flex flex-col items-center bg-slate-50 px-2">
+            <div key={item.s} className="relative z-10 flex flex-col items-center bg-slate-50 px-3">
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition-colors ${
-                  step >= item.s
-                    ? 'bg-brand-orange text-white ring-4 ring-brand-orange/20 shadow-md'
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-xs transition-all duration-300 ${
+                  step > item.s
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : step === item.s
+                    ? 'bg-gradient-to-r from-brand-orange to-amber-500 text-white ring-4 ring-brand-orange/20 shadow-md shadow-brand-orange/30 scale-105'
                     : 'bg-white border-2 border-slate-300 text-slate-400'
                 }`}
               >
                 {step > item.s ? <CheckCircle2 className="w-5 h-5" /> : item.s}
               </div>
               <span
-                className={`text-[11px] font-bold mt-1.5 ${
-                  step >= item.s ? 'text-slate-900' : 'text-slate-400'
+                className={`text-xs font-black mt-2 font-heading tracking-tight ${
+                  step === item.s
+                    ? 'text-navy-950 font-bold'
+                    : step > item.s
+                    ? 'text-emerald-700 font-bold'
+                    : 'text-slate-400'
                 }`}
               >
                 {item.label}
@@ -268,12 +362,31 @@ function BookingFlowContent() {
             </div>
           ))}
         </div>
+
+        {/* Mobile Compact Progress Bar */}
+        <div className="sm:hidden bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-brand-orange uppercase tracking-wider text-[10px] font-black">
+              Step {step} of 3
+            </span>
+            <span className="text-navy-950 font-heading">
+              {step === 1 ? 'Trip & Delivery' : step === 2 ? 'Traveller & KYC' : 'Review & Pay'}
+            </span>
+          </div>
+          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-brand-orange to-amber-500 h-full transition-all duration-300 rounded-full"
+              style={{ width: `${(step / 3) * 100}%` }}
+            />
+          </div>
+        </div>
       </div>
 
-      {error && (
-        <div className="max-w-4xl mx-auto p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs flex items-start gap-2">
+      {/* Global Error Banner */}
+      {(error || availabilityError) && (
+        <div className="max-w-4xl mx-auto p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs flex items-start gap-2 animate-fade-in-up">
           <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-          <span>{error}</span>
+          <span>{error || availabilityError}</span>
         </div>
       )}
 
@@ -326,12 +439,12 @@ function BookingFlowContent() {
                       value={pickupDate}
                       min={new Date().toISOString().split('T')[0]}
                       onChange={(e) => setPickupDate(e.target.value)}
-                      className="w-3/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none"
+                      className="w-3/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-brand-orange"
                     />
                     <select
                       value={pickupTime}
                       onChange={(e) => setPickupTime(e.target.value)}
-                      className="w-2/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none"
+                      className="w-2/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-brand-orange"
                     >
                       <option value="09:00">09:00 AM</option>
                       <option value="10:00">10:00 AM</option>
@@ -352,13 +465,14 @@ function BookingFlowContent() {
                       value={returnDate}
                       min={pickupDate}
                       onChange={(e) => setReturnDate(e.target.value)}
-                      className="w-3/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none"
+                      className="w-3/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-brand-orange"
                     />
                     <select
                       value={returnTime}
                       onChange={(e) => setReturnTime(e.target.value)}
-                      className="w-2/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none"
+                      className="w-2/5 p-2 bg-white border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-brand-orange"
                     >
+                      <option value="09:00">09:00 AM</option>
                       <option value="10:00">10:00 AM</option>
                       <option value="14:00">02:00 PM</option>
                       <option value="18:00">06:00 PM</option>
@@ -368,7 +482,7 @@ function BookingFlowContent() {
                 </div>
               </div>
 
-              {/* Google Maps Delivery & Pickup Location Selector */}
+              {/* Delivery / Location Selection */}
               <DeliveryLocationSelector
                 destinationCity={vehicle?.destinationId?.city || 'Rishikesh'}
                 initialType={pickupType}
@@ -392,11 +506,23 @@ function BookingFlowContent() {
 
               <button
                 type="button"
+                disabled={priceUpdating || !isDateAvailable}
                 onClick={() => setStep(2)}
-                className="w-full py-3.5 rounded-2xl bg-brand-orange hover:bg-brand-dark text-white font-bold text-sm shadow-md shadow-brand-orange/20 flex items-center justify-center gap-2 transition-all"
+                className="w-full py-3.5 rounded-2xl bg-brand-orange hover:bg-brand-dark text-white font-bold text-sm shadow-md shadow-brand-orange/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
               >
-                <span>Continue to Traveller & KYC</span>
-                <ArrowRight className="w-4 h-4" />
+                {priceUpdating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Updating availability & price...</span>
+                  </>
+                ) : !isDateAvailable ? (
+                  <span>Vehicle unavailable for selected dates</span>
+                ) : (
+                  <>
+                    <span>Continue to Traveller & KYC</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </div>
           )}
@@ -439,33 +565,67 @@ function BookingFlowContent() {
                 </div>
               </div>
 
-              {/* Driving Licence & KYC Preview */}
-              <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 space-y-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-emerald-950 flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-emerald-600" />
-                    Driving Licence Verification
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px] uppercase">
-                    KYC Verified
-                  </span>
-                </div>
+              {/* Driving Licence & KYC Check */}
+              {kycStatusData?.isEligibleForBooking ? (
+                <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 space-y-3 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-950 flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-emerald-600" />
+                      Driving Licence Verification
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px] uppercase">
+                      Verified by RideSetu
+                    </span>
+                  </div>
 
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Driving Licence Number</label>
-                  <input
-                    type="text"
-                    required
-                    value={dlNumber}
-                    onChange={(e) => setDlNumber(e.target.value.toUpperCase())}
-                    className="w-full p-2.5 bg-white border border-emerald-300 rounded-xl font-mono font-bold uppercase outline-none"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-slate-700 font-semibold mb-1">Driving Licence Number</label>
+                    <input
+                      type="text"
+                      required
+                      value={dlNumber}
+                      readOnly
+                      className="w-full p-2.5 bg-slate-50 border border-emerald-300 rounded-xl font-mono font-bold uppercase outline-none text-slate-700"
+                    />
+                  </div>
 
-                <p className="text-[11px] text-emerald-800 leading-relaxed">
-                  ✓ Digital KYC pre-cleared. Please carry your physical DL at pickup for 10-second authentication.
-                </p>
-              </div>
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
+                    ✓ Digital KYC pre-cleared. Please carry your physical DL at pickup for 10-second authentication.
+                  </p>
+                </div>
+              ) : kycStatusData?.isDlExpired ? (
+                <div className="p-4 bg-red-50 rounded-2xl border border-red-200 space-y-2 text-xs">
+                  <div className="font-bold text-red-950 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600" />
+                    Driving Licence Expired
+                  </div>
+                  <p className="text-red-800">
+                    Your registered driving licence has expired. Please update your licence before booking.
+                  </p>
+                  <a
+                    href="/dashboard"
+                    className="inline-block px-3 py-1.5 bg-red-600 text-white rounded-xl font-bold text-xs shadow-sm"
+                  >
+                    Update Licence in Dashboard
+                  </a>
+                </div>
+              ) : (
+                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 space-y-2 text-xs">
+                  <div className="font-bold text-amber-950 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                    KYC Verification Required Before Booking
+                  </div>
+                  <p className="text-amber-800">
+                    Please submit your Driving Licence for administrative review in your customer portal before reserving vehicles.
+                  </p>
+                  <a
+                    href="/dashboard"
+                    className="inline-block px-3 py-1.5 bg-navy-900 text-white rounded-xl font-bold text-xs shadow-sm"
+                  >
+                    Complete KYC in Dashboard
+                  </a>
+                </div>
+              )}
 
               {/* Emergency Contact */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 text-xs">
@@ -518,10 +678,10 @@ function BookingFlowContent() {
                 <button
                   type="button"
                   onClick={() => setStep(3)}
-                  className="flex-2 py-3 px-6 rounded-2xl bg-brand-orange hover:bg-brand-dark text-white font-bold text-xs shadow-md shadow-brand-orange/20 flex items-center justify-center gap-2"
+                  disabled={kycStatusData && !kycStatusData.isEligibleForBooking}
+                  className="flex-1 py-3 rounded-2xl bg-brand-orange hover:bg-orange-600 text-white font-bold text-xs shadow-lg shadow-orange-950/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                 >
-                  <span>Review Final Summary</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Proceed to Review</span> <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -530,25 +690,41 @@ function BookingFlowContent() {
           {/* STEP 3: Review & Payment Confirmation */}
           {step === 3 && (
             <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-6">
-              <div className="border-b border-slate-100 pb-3">
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-brand-light text-brand-dark">
-                  Step 3 of 3
-                </span>
-                <h2 className="text-xl font-bold font-heading text-navy-900 mt-1">
-                  Review & Secure Payment
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Confirm your reservation and lock the vehicle with verified local partner.
-                </p>
+              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-brand-light text-brand-dark">
+                    Step 3 of 3
+                  </span>
+                  <h2 className="text-xl font-bold font-heading text-navy-900 mt-1">
+                    Review & Secure Payment
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Confirm your reservation and lock the vehicle with verified local partner.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="text-xs font-bold text-brand-orange hover:underline flex items-center gap-1"
+                >
+                  <Edit3 className="w-3.5 h-3.5" /> Modify Dates
+                </button>
               </div>
 
               <div className="space-y-3 text-xs">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                  <div className="font-bold text-slate-900 text-sm">{vehicle?.brand} {vehicle?.model}</div>
-                  <div className="grid grid-cols-2 gap-2 text-slate-600">
+                {/* Trip Details Card */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-slate-900 font-heading text-sm">{vehicle?.brand} {vehicle?.model}</span>
+                    <span className="text-[11px] font-bold text-slate-500 px-2 py-0.5 bg-white rounded-md border border-slate-200">
+                      {pricing?.durationDays || 1} billable day{pricing?.durationDays > 1 ? 's' : ''} ({pricing?.durationHours || 24}h)
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600">
                     <div>📍 <strong>Pickup:</strong> {pickupDate} ({pickupTime})</div>
                     <div>🏁 <strong>Return:</strong> {returnDate} ({returnTime})</div>
-                    <div>🏬 <strong>Partner:</strong> {vehicle?.vendorId?.businessName}</div>
+                    <div>🏬 <strong>Partner:</strong> {vehicle?.vendorId?.businessName || 'Verified Partner'}</div>
                     <div>🛵 <strong>Delivery:</strong> {pickupType}</div>
                   </div>
                 </div>
@@ -571,11 +747,28 @@ function BookingFlowContent() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPaymentOpen(true)}
-                  className="flex-2 py-3 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2"
+                  disabled={initiatingPayment || priceUpdating || !isDateAvailable}
+                  onClick={handleInitiatePayment}
+                  className="flex-2 py-3 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
                 >
-                  <Lock className="w-4 h-4" />
-                  <span>Proceed to Pay {formatINR(pricing?.totalPayable || 1500)}</span>
+                  {initiatingPayment ? (
+                    <>
+                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      <span>Securing Hold...</span>
+                    </>
+                  ) : priceUpdating ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Updating Price...</span>
+                    </>
+                  ) : !isDateAvailable ? (
+                    <span>Dates Unavailable</span>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      <span>Proceed to Pay {formatINR(pricing?.totalPayable || 1500)}</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -586,6 +779,7 @@ function BookingFlowContent() {
         <div className="lg:col-span-1">
           <PriceBreakdownCard
             pricing={pricing}
+            loading={priceUpdating}
             onApplyCoupon={handleApplyCoupon}
           />
         </div>
@@ -596,7 +790,14 @@ function BookingFlowContent() {
         isOpen={isPaymentOpen}
         onClose={() => setPaymentOpen(false)}
         amount={pricing?.totalPayable || 1500}
+        orderId={orderData?.orderId}
+        keyId={orderData?.keyId}
         vehicleName={`${vehicle?.brand} ${vehicle?.model}`}
+        customerDetails={{
+          name: fullName,
+          email,
+          phone,
+        }}
         onPaymentComplete={handlePaymentComplete}
       />
     </div>
@@ -605,7 +806,7 @@ function BookingFlowContent() {
 
 export default function BookingPage() {
   return (
-    <Suspense fallback={<div className="p-16 text-center text-slate-500">Loading checkout...</div>}>
+    <Suspense fallback={<div className="p-16 text-center text-slate-500 font-semibold">Loading checkout...</div>}>
       <BookingFlowContent />
     </Suspense>
   );

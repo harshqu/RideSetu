@@ -18,6 +18,9 @@ export type BookingStatus =
   | 'ACTIVE'
   | 'COMPLETED'
   | 'CANCELLED'
+  | 'CANCELLED_BY_CUSTOMER'
+  | 'CANCELLED_BY_VENDOR'
+  | 'CANCELLED_BY_ADMIN'
   | 'DISPUTED';
 
 export type DepositStatus =
@@ -30,7 +33,8 @@ export type PaymentStatus =
   | 'PENDING'
   | 'PAID'
   | 'FAILED'
-  | 'REFUNDED';
+  | 'REFUNDED'
+  | 'PARTIALLY_REFUNDED';
 
 export interface IBooking extends Document {
   _id: mongoose.Types.ObjectId;
@@ -93,6 +97,11 @@ export interface IBooking extends Document {
   handoverPickupId?: mongoose.Types.ObjectId;
   handoverReturnId?: mongoose.Types.ObjectId;
   cancellationReason?: string;
+  cancelledBy?: 'CUSTOMER' | 'VENDOR' | 'ADMIN';
+  cancelledAt?: Date;
+  cancellationRefundAmount?: number;
+  cancellationFee?: number;
+  refundStatus?: 'NONE' | 'PENDING' | 'PROCESSED' | 'FAILED' | 'NOT_APPLICABLE';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -137,13 +146,23 @@ const BookingSchema = new Schema<IBooking>(
     },
     bookingStatus: {
       type: String,
-      enum: ['PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED', 'DISPUTED'],
+      enum: [
+        'PENDING',
+        'CONFIRMED',
+        'ACTIVE',
+        'COMPLETED',
+        'CANCELLED',
+        'CANCELLED_BY_CUSTOMER',
+        'CANCELLED_BY_VENDOR',
+        'CANCELLED_BY_ADMIN',
+        'DISPUTED',
+      ],
       default: 'PENDING',
       index: true,
     },
     paymentStatus: {
       type: String,
-      enum: ['PENDING', 'PAID', 'FAILED', 'REFUNDED'],
+      enum: ['PENDING', 'PAID', 'FAILED', 'REFUNDED', 'PARTIALLY_REFUNDED'],
       default: 'PENDING',
       index: true,
     },
@@ -190,6 +209,15 @@ const BookingSchema = new Schema<IBooking>(
     handoverPickupId: { type: Schema.Types.ObjectId, ref: 'DigitalHandoverReport' },
     handoverReturnId: { type: Schema.Types.ObjectId, ref: 'DigitalHandoverReport' },
     cancellationReason: { type: String, default: '' },
+    cancelledBy: { type: String, enum: ['CUSTOMER', 'VENDOR', 'ADMIN'] },
+    cancelledAt: { type: Date },
+    cancellationRefundAmount: { type: Number, default: 0 },
+    cancellationFee: { type: Number, default: 0 },
+    refundStatus: {
+      type: String,
+      enum: ['NONE', 'PENDING', 'PROCESSED', 'FAILED', 'NOT_APPLICABLE'],
+      default: 'NONE',
+    },
   },
   {
     timestamps: true,
@@ -203,6 +231,8 @@ BookingSchema.index({
   returnDateTime: 1,
   bookingStatus: 1,
 });
+BookingSchema.index({ customerId: 1, createdAt: -1 });
+BookingSchema.index({ vendorId: 1, bookingStatus: 1 });
 
 export const Booking: Model<IBooking> =
   mongoose.models.Booking || mongoose.model<IBooking>('Booking', BookingSchema);

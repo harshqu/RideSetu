@@ -6,8 +6,28 @@ import connectToDatabase from '@/lib/mongodb';
 
 export class AvailabilityService {
   /**
+   * Lazy cleanup of expired reservation holds across the database
+   */
+  public static async cleanupExpiredHolds(): Promise<number> {
+    try {
+      await connectToDatabase();
+      const now = new Date();
+      const res = await ReservationLock.updateMany(
+        { status: 'HOLD', expiresAt: { $lte: now } },
+        { $set: { status: 'EXPIRED' } }
+      );
+      return res.modifiedCount || 0;
+    } catch (err) {
+      console.warn('[Availability] Expired hold cleanup notice:', err);
+      return 0;
+    }
+  }
+
+  /**
    * Server-side availability checker implementing strict overlapping logic:
    * Condition: requestedPickup < existingReturn AND requestedReturn > existingPickup
+   *
+   * Supports excluding current customer/session to allow active checkouts to reuse their own hold.
    */
   public static async isVehicleAvailable(
     params: {
@@ -16,6 +36,8 @@ export class AvailabilityService {
       returnDateTime: Date | string;
       excludeBookingId?: string | mongoose.Types.ObjectId;
       excludeSessionToken?: string;
+      excludeUserId?: string | mongoose.Types.ObjectId;
+      excludeReservationLockId?: string | mongoose.Types.ObjectId;
     },
     options?: { session?: mongoose.ClientSession }
   ): Promise<{
@@ -92,8 +114,14 @@ export class AvailabilityService {
       };
     }
 
-    // 3. Check for active unexpired distributed reservation locks
+    // 3. Lazy cleanup of expired holds prior to evaluation
     const now = new Date();
+    await ReservationLock.updateMany(
+      { vehicleId: vehicleObjectId, status: 'HOLD', expiresAt: { $lte: now } },
+      { $set: { status: 'EXPIRED' } }
+    );
+
+    // 4. Check for active unexpired distributed reservation locks belonging to OTHER customers
     const lockQuery: Record<string, unknown> = {
       vehicleId: vehicleObjectId,
       status: { $in: ['HOLD', 'CONFIRMED'] },
@@ -106,14 +134,33 @@ export class AvailabilityService {
       lockQuery.sessionToken = { $ne: params.excludeSessionToken };
     }
 
+    if (params.excludeUserId) {
+      const userOid =
+        typeof params.excludeUserId === 'string'
+          ? new mongoose.Types.ObjectId(params.excludeUserId)
+          : params.excludeUserId;
+      lockQuery.userId = { $ne: userOid };
+    }
+
+    if (params.excludeReservationLockId) {
+      const lockOid =
+        typeof params.excludeReservationLockId === 'string'
+          ? new mongoose.Types.ObjectId(params.excludeReservationLockId)
+          : params.excludeReservationLockId;
+      lockQuery._id = { $ne: lockOid };
+    }
+
     const conflictingLock = await ReservationLock.findOne(lockQuery, null, options).lean<IReservationLock>();
     if (conflictingLock) {
+      const isConfirmed = conflictingLock.status === 'CONFIRMED';
       return {
         available: false,
         conflictingLock,
-        reason: `Vehicle has an active reservation hold from ${new Date(
-          conflictingLock.pickupDateTime
-        ).toLocaleString('en-IN')} to ${new Date(conflictingLock.returnDateTime).toLocaleString('en-IN')}.`,
+        reason: isConfirmed
+          ? `Vehicle has a confirmed booking from ${new Date(
+              conflictingLock.pickupDateTime
+            ).toLocaleString('en-IN')} to ${new Date(conflictingLock.returnDateTime).toLocaleString('en-IN')}.`
+          : 'This vehicle is temporarily reserved for another customer for the selected dates.',
       };
     }
 
@@ -121,11 +168,13 @@ export class AvailabilityService {
   }
 
   /**
-   * Acquire an atomic, database-backed reservation hold on MongoDB Atlas
-   * Guaranteed safe across multiple instances, serverless runtimes, and distributed clusters
+   * Acquire or update an atomic, database-backed reservation hold on MongoDB Atlas.
+   * If the current authenticated customer already holds an active lock for this vehicle,
+   * it is reused, synchronized to the new date range, and refreshed automatically.
    */
   public static async acquireDistributedReservation(params: {
     vehicleId: string | mongoose.Types.ObjectId;
+    userId?: string | mongoose.Types.ObjectId;
     pickupDateTime: Date | string;
     returnDateTime: Date | string;
     sessionToken?: string;
@@ -134,11 +183,12 @@ export class AvailabilityService {
     acquired: boolean;
     reservation?: IReservationLock;
     reason?: string;
+    isReused?: boolean;
   }> {
     await connectToDatabase();
 
     const token = params.sessionToken || `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    const duration = params.durationMinutes || 10;
+    const duration = params.durationMinutes || 15;
     const expiresAt = new Date(Date.now() + duration * 60 * 1000);
 
     const vehicleObjectId =
@@ -149,11 +199,80 @@ export class AvailabilityService {
     const pickup = new Date(params.pickupDateTime);
     const returnDate = new Date(params.returnDateTime);
 
-    // 1. Initial availability check against confirmed bookings and existing locks
+    // 1. Lazy cleanup of expired holds
+    await ReservationLock.updateMany(
+      { vehicleId: vehicleObjectId, status: 'HOLD', expiresAt: { $lte: new Date() } },
+      { $set: { status: 'EXPIRED' } }
+    );
+
+    // 2. Check if the CURRENT customer already has ANY active unconfirmed hold for this vehicle
+    if (params.userId) {
+      const userOid =
+        typeof params.userId === 'string' ? new mongoose.Types.ObjectId(params.userId) : params.userId;
+
+      const existingUserHold = await ReservationLock.findOne({
+        vehicleId: vehicleObjectId,
+        userId: userOid,
+        status: 'HOLD',
+        expiresAt: { $gt: new Date() },
+      });
+
+      if (existingUserHold) {
+        // If dates are identical, simply refresh expiry
+        const isSameDates =
+          new Date(existingUserHold.pickupDateTime).getTime() === pickup.getTime() &&
+          new Date(existingUserHold.returnDateTime).getTime() === returnDate.getTime();
+
+        if (isSameDates) {
+          existingUserHold.expiresAt = expiresAt;
+          if (params.sessionToken) {
+            existingUserHold.sessionToken = params.sessionToken;
+          }
+          await existingUserHold.save();
+
+          return {
+            acquired: true,
+            reservation: existingUserHold,
+            isReused: true,
+          };
+        }
+
+        // If dates have changed, verify availability for the NEW dates (excluding this existing lock)
+        const check = await this.isVehicleAvailable({
+          vehicleId: vehicleObjectId,
+          pickupDateTime: pickup,
+          returnDateTime: returnDate,
+          excludeUserId: params.userId,
+          excludeReservationLockId: existingUserHold._id,
+        });
+
+        if (!check.available) {
+          return { acquired: false, reason: check.reason };
+        }
+
+        // Synchronize existing hold to the new dates & refresh expiry
+        existingUserHold.pickupDateTime = pickup;
+        existingUserHold.returnDateTime = returnDate;
+        existingUserHold.expiresAt = expiresAt;
+        if (params.sessionToken) {
+          existingUserHold.sessionToken = params.sessionToken;
+        }
+        await existingUserHold.save();
+
+        return {
+          acquired: true,
+          reservation: existingUserHold,
+          isReused: true,
+        };
+      }
+    }
+
+    // 3. Availability check against other customers' holds, confirmed bookings & blocks
     const check = await this.isVehicleAvailable({
       vehicleId: vehicleObjectId,
       pickupDateTime: pickup,
       returnDateTime: returnDate,
+      excludeUserId: params.userId,
       excludeSessionToken: token,
     });
 
@@ -161,9 +280,17 @@ export class AvailabilityService {
       return { acquired: false, reason: check.reason };
     }
 
-    // 2. Insert hold record into MongoDB Atlas
+    // 4. Insert new hold record into MongoDB
+    const userOid =
+      params.userId
+        ? typeof params.userId === 'string'
+          ? new mongoose.Types.ObjectId(params.userId)
+          : params.userId
+        : undefined;
+
     const lock = await ReservationLock.create({
       vehicleId: vehicleObjectId,
+      userId: userOid,
       pickupDateTime: pickup,
       returnDateTime: returnDate,
       status: 'HOLD',
@@ -171,7 +298,7 @@ export class AvailabilityService {
       expiresAt,
     });
 
-    // 3. Distributed race arbitration check:
+    // 5. Distributed race arbitration check:
     // If multiple server instances concurrently inserted overlapping locks in the same millisecond,
     // only the earliest inserted document retains the hold; all other concurrent entries are released.
     const overlappingLocks = await ReservationLock.find({
@@ -185,7 +312,7 @@ export class AvailabilityService {
       .lean<IReservationLock[]>();
 
     if (overlappingLocks.length > 1 && overlappingLocks[0]._id.toString() !== lock._id.toString()) {
-      // Another instance created a lock slightly before ours; remove ours and reject safely
+      // Another customer/instance created a lock slightly before ours; remove ours and reject safely
       await ReservationLock.findByIdAndDelete(lock._id);
       return {
         acquired: false,

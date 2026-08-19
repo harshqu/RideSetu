@@ -78,13 +78,19 @@ export async function PATCH(
     }
 
     if (action === 'CANCEL') {
-      const updated = await BookingService.cancelBooking({
+      const result = await BookingService.cancelBooking({
         bookingId: id,
         userId: session.userId,
         role: session.role,
-        reason: reason || 'Customer requested cancellation.',
+        vendorId: session.vendorId,
+        reason: reason || 'Requested cancellation.',
       });
-      return NextResponse.json({ success: true, booking: updated, message: 'Booking cancelled.' });
+      return NextResponse.json({
+        success: true,
+        booking: result.booking,
+        refundSummary: result.refundSummary,
+        message: 'Booking cancelled successfully.',
+      });
     }
 
     if (action === 'COMPLETE') {

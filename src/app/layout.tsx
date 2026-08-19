@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { CompareProvider } from '@/context/CompareContext';
@@ -6,19 +6,50 @@ import DemoRoleBar from '@/components/common/DemoRoleBar';
 import Navbar from '@/components/common/Navbar';
 import CompareDrawer from '@/components/marketplace/CompareDrawer';
 import Footer from '@/components/common/Footer';
+import NetworkStatus from '@/components/common/NetworkStatus';
+import InstallPrompt from '@/components/pwa/InstallPrompt';
+
+export const viewport: Viewport = {
+  themeColor: '#FF6B00',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export const metadata: Metadata = {
-  title: 'RideSetu — One Place. Every Ride. Every Destination.',
+  title: {
+    default: 'RideSetu — Verified Bike & Car Rentals in Uttarakhand',
+    template: '%s | RideSetu',
+  },
   description:
-    'Compare and book verified rental bikes, scooters, and self-drive cars from trusted local partners across Uttarakhand and India top travel destinations.',
+    'Book verified bikes, scooters and self-drive cars across Rishikesh, Mussoorie, Dehradun, Haridwar and Nainital with transparent prices and 100% deposit protection.',
   keywords: [
     'bike rental rishikesh',
     'scooty rental mussoorie',
     'car rental dehradun',
     'bike rental nainital',
+    'self drive rental uttarakhand',
     'ridesetu travel mobility marketplace',
-    'royal brothers alternative india',
   ],
+  authors: [{ name: 'RideSetu Technologies' }],
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'RideSetu',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    siteName: 'RideSetu',
+    title: 'RideSetu — Verified Bike & Car Rentals in Uttarakhand',
+    description: 'Book verified bikes, scooters and self-drive cars across Rishikesh, Mussoorie, Dehradun, Haridwar and Nainital.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'RideSetu — Verified Bike & Car Rentals in Uttarakhand',
+    description: 'Book verified bikes, scooties, and cars across Uttarakhand travel hubs with 360° digital handover.',
+  },
 };
 
 export default function RootLayout({
@@ -39,10 +70,12 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col antialiased selection:bg-brand-orange selection:text-white">
         <AuthProvider>
           <CompareProvider>
+            <NetworkStatus />
             <DemoRoleBar />
             <Navbar />
             <main className="flex-1">{children}</main>
             <CompareDrawer />
+            <InstallPrompt />
             <Footer />
           </CompareProvider>
         </AuthProvider>

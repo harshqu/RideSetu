@@ -5,6 +5,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import SearchWidget from '@/components/marketplace/SearchWidget';
 import VehicleCard from '@/components/marketplace/VehicleCard';
+import StatCounter from '@/components/ui/StatCounter';
+import ScrollReveal from '@/components/ui/ScrollReveal';
+import CinematicHero from '@/components/home/cinematic/CinematicHero';
 import { formatINR } from '@/lib/utils';
 import {
   Compass,
@@ -82,357 +85,341 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="space-y-16 sm:space-y-24 pb-16">
-      {/* Hero Section */}
-      <section className="relative pt-12 pb-24 md:pt-20 md:pb-32 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-b from-navy-950 via-navy-900 to-navy-950 text-white">
-        {/* Background Decorative Aura */}
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#FF6B00_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none"></div>
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-orange/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div className="space-y-12 sm:space-y-20 pb-16 w-full max-w-full overflow-hidden">
+      {/* Cinematic Animated Himalayan Hero Section */}
+      <section className="relative pt-20 sm:pt-28 md:pt-36 pb-16 sm:pb-24 md:pb-32 px-3 sm:px-6 lg:px-8 overflow-hidden text-white min-h-[620px] sm:min-h-[720px] md:min-h-[780px] w-full max-w-full flex items-center justify-center">
+        {/* Multi-Layered Cinematic Himalayan & Rider Visual Scene */}
+        <CinematicHero />
 
-        <div className="max-w-6xl mx-auto relative z-10 text-center space-y-6">
+        {/* Foreground Content with Responsive Typography */}
+        <div className="w-full max-w-5xl mx-auto relative z-10 text-center space-y-4 sm:space-y-6 px-1 sm:px-4">
           {/* Tagline Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-semibold text-brand-orange animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Uttarakhand Verified Travel Mobility Marketplace</span>
+          <div className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full bg-navy-950/85 backdrop-blur-md border border-white/20 text-[10px] sm:text-xs font-extrabold text-brand-orange animate-stagger-1 shadow-xl max-w-[95%] mx-auto">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="truncate">Uttarakhand Verified Travel Mobility Marketplace</span>
           </div>
 
-          {/* Main Hero Headline */}
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black font-heading text-white tracking-tight leading-tight max-w-4xl mx-auto">
-            Explore More. <span className="text-brand-orange">Ride Freely.</span>
+          {/* Main Hero Headline (Natural wrapping without overflow) */}
+          <h1 className="text-[32px] sm:text-5xl lg:text-6xl font-black font-heading text-white tracking-tight leading-[1.08] sm:leading-[1.15] w-full max-w-4xl mx-auto animate-stagger-2 drop-shadow-[0_4px_16px_rgba(0,0,0,0.8)] break-words px-2 sm:px-0">
+            Rent. Ride.{' '}
+            <span className="block sm:inline text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-amber-300">
+              Explore Himalayan Trails.
+            </span>
           </h1>
 
           {/* Subheading */}
-          <p className="text-slate-300 text-sm sm:text-lg max-w-2xl mx-auto font-normal leading-relaxed">
-            Compare and book verified bikes, scooters, and self-drive cars from trusted local rental partners across India top travel destinations.
+          <p className="text-slate-100 text-xs sm:text-base md:text-lg max-w-2xl mx-auto font-normal leading-relaxed animate-stagger-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] px-3 sm:px-0">
+            Discover and book verified scooters, touring motorcycles, and self-drive cars from certified local operators across Rishikesh, Mussoorie, Dehradun & Nainital.
           </p>
 
-          {/* Search Widget */}
-          <div className="pt-6 max-w-5xl mx-auto text-left">
+          {/* Floating Glassmorphic Search Widget */}
+          <div className="pt-2 sm:pt-4 w-full max-w-4xl mx-auto text-left animate-stagger-4">
             <SearchWidget />
           </div>
 
-          {/* Quick Stats */}
-          <div className="pt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto text-center text-xs">
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
-              <div className="text-xl font-extrabold text-white font-heading">6+</div>
-              <div className="text-slate-400 mt-0.5">Uttarakhand Hubs</div>
+          {/* Integrated Translucent Dark Glass Trust Metrics Bar (2-column on mobile) */}
+          <div className="pt-4 sm:pt-6 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 max-w-4xl mx-auto text-center w-full px-1 sm:px-0">
+            <div className="bg-navy-950/80 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-white/10 shadow-xl transition-transform hover:scale-105 duration-200">
+              <StatCounter target={6} suffix="+" label="Uttarakhand Hubs" colorClass="text-white" />
             </div>
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
-              <div className="text-xl font-extrabold text-amber-400 font-heading">10+</div>
-              <div className="text-slate-400 mt-0.5">Verified Partners</div>
+            <div className="bg-navy-950/80 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-white/10 shadow-xl transition-transform hover:scale-105 duration-200">
+              <StatCounter target={10} suffix="+" label="Verified Operators" colorClass="text-amber-400" />
             </div>
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
-              <div className="text-xl font-extrabold text-emerald-400 font-heading">30+</div>
-              <div className="text-slate-400 mt-0.5">Inspected Vehicles</div>
+            <div className="bg-navy-950/80 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-white/10 shadow-xl transition-transform hover:scale-105 duration-200">
+              <StatCounter target={30} suffix="+" label="Inspected Vehicles" colorClass="text-emerald-400" />
             </div>
-            <div className="p-3 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
-              <div className="text-xl font-extrabold text-brand-orange font-heading">100%</div>
-              <div className="text-slate-400 mt-0.5">Refundable Deposit</div>
+            <div className="bg-navy-950/80 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-white/10 shadow-xl transition-transform hover:scale-105 duration-200">
+              <StatCounter target={100} suffix="%" label="Deposit Escrow" colorClass="text-brand-orange" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Destination-First Discovery */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-brand-orange">
-              Top Uttarakhand Destinations
+      {/* 4 Pillars of Marketplace Trust */}
+      <ScrollReveal>
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            <div className="card-premium card-premium-hover p-5 sm:p-6 rounded-3xl space-y-3 group">
+              <div className="w-12 h-12 rounded-2xl bg-brand-light text-brand-orange flex items-center justify-center transition-transform group-hover:scale-110 duration-200">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <h3 className="font-extrabold text-slate-900 text-base sm:text-lg font-heading">
+                Multi-Vendor Comparison
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                Compare verified local operators across Uttarakhand. View real ratings, deposits, inclusions, and transparent pricing in one place.
+              </p>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-heading text-navy-900 mt-1">
-              Find Verified Rides By Destination
+
+            <div className="card-premium card-premium-hover p-5 sm:p-6 rounded-3xl space-y-3 group">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center transition-transform group-hover:scale-110 duration-200">
+                <FileCheck2 className="w-6 h-6" />
+              </div>
+              <h3 className="font-extrabold text-slate-900 text-base sm:text-lg font-heading">
+                Digital Handover Checklist
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                360° digital condition sign-off at pickup and return. Fuel level, odometer, and scratches recorded to ensure 100% deposit protection.
+              </p>
+            </div>
+
+            <div className="card-premium card-premium-hover p-5 sm:p-6 rounded-3xl space-y-3 group">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center transition-transform group-hover:scale-110 duration-200">
+                <Zap className="w-6 h-6" />
+              </div>
+              <h3 className="font-extrabold text-slate-900 text-base sm:text-lg font-heading">
+                Doorstep Hotel Delivery
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                Get your scooter or motorcycle delivered directly to your hotel, hostel, railway station, or airport terminal in Tapovan, Mall Road & ISBT.
+              </p>
+            </div>
+
+            <div className="card-premium card-premium-hover p-5 sm:p-6 rounded-3xl space-y-3 group">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center transition-transform group-hover:scale-110 duration-200">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h3 className="font-extrabold text-slate-900 text-base sm:text-lg font-heading">
+                Isolated Deposit Escrow
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                Security deposits are held in isolated digital escrow and automatically released upon return sign-off. Never worry about held deposits.
+              </p>
+            </div>
+          </div>
+        </section>
+      </ScrollReveal>
+
+      {/* Explore Popular Launch Hubs */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200/80 pb-4 sm:pb-6">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-light text-brand-dark text-xs font-black uppercase tracking-wider mb-2">
+              <MapPin className="w-3.5 h-3.5" /> Launch Hubs
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black font-heading text-slate-900">
+              Popular Uttarakhand Destinations
             </h2>
-            <p className="text-slate-500 text-xs sm:text-sm mt-1">
-              Select your travel destination to discover top verified vendors, average rental rates, and popular pickup hubs.
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+              Verified local rental operators ready with scooters, bikes, and cars at key transit hubs.
             </p>
           </div>
           <Link
             href="/vehicles"
-            className="text-xs font-bold text-brand-orange hover:text-brand-dark flex items-center gap-1 shrink-0"
+            className="inline-flex items-center gap-1.5 text-xs font-extrabold text-brand-orange hover:text-brand-dark transition-colors group"
           >
-            <span>View All Destinations</span>
-            <ChevronRight className="w-4 h-4" />
+            <span>View All Fleet</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
 
-        {/* Destination Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {destinations.map((dest) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          {destinations.map((d) => (
             <Link
-              key={dest.slug}
-              href={`/destinations/${dest.slug}`}
-              className="group relative rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-slate-200 bg-navy-950 transition-all duration-300 aspect-[16/11]"
+              key={d.slug}
+              href={`/destinations/${d.slug}`}
+              className="group relative rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-200 bg-white border border-slate-200/80 flex flex-col justify-between"
             >
-              <Image
-                src={dest.heroImage || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80'}
-                alt={dest.name}
-                fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-90"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-950/40 to-transparent"></div>
-
-              <div className="absolute inset-0 p-6 flex flex-col justify-between text-white">
-                <div className="flex justify-between items-start">
-                  <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-bold">
-                    📍 {dest.state}
-                  </span>
-                  <span className="px-2.5 py-1 rounded-full bg-brand-orange text-white text-[10px] font-extrabold">
-                    {dest.totalVehicles || 6} Rides Listed
-                  </span>
+              <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden">
+                <Image
+                  src={d.image || 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=600&q=80'}
+                  alt={d.name}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-xs font-black text-slate-900 shadow-sm">
+                  {d.vehicleCount || 10}+ Verified Rides
                 </div>
-
-                <div className="space-y-1.5">
-                  <h3 className="text-2xl font-black font-heading group-hover:text-amber-400 transition-colors">
-                    {dest.name}
-                  </h3>
-                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
-                    {dest.tagline || dest.description}
-                  </p>
-
-                  <div className="pt-2 flex items-center justify-between border-t border-white/15 text-xs font-semibold">
-                    <span className="text-slate-300">
-                      Scooty from <strong className="text-white font-heading">{formatINR(dest.averagePrices?.scooter || 399)}/day</strong>
-                    </span>
-                    <span className="text-brand-orange flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
-                      Explore Hub <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
+                <div className="absolute bottom-3 left-4 text-white">
+                  <h3 className="text-xl font-black font-heading text-white">{d.name}</h3>
+                  <p className="text-xs text-slate-300 font-medium">{d.state}</p>
                 </div>
+              </div>
+
+              <div className="p-4 sm:p-5 flex items-center justify-between bg-white text-xs">
+                <span className="font-extrabold text-slate-700">From {formatINR(d.startingPrice || 450)}/day</span>
+                <span className="inline-flex items-center gap-1 text-brand-orange font-black group-hover:translate-x-0.5 transition-transform">
+                  <span>Explore</span>
+                  <ChevronRight className="w-4 h-4" />
+                </span>
               </div>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* Featured Vehicles & Multi-Vendor Comparison Highlight */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-slate-900 rounded-3xl p-6 sm:p-10 text-white relative overflow-hidden mb-10">
-          <div className="relative z-10 max-w-2xl space-y-3">
-            <span className="px-3 py-1 rounded-full bg-brand-orange/20 text-brand-orange font-bold text-xs border border-brand-orange/30">
-              Core Differentiator
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-heading text-white">
-              Multi-Vendor Side-by-Side Comparison
-            </h2>
-            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-              Don’t settle for single-vendor pricing. Select up to 4 rental vehicles from different local partners in Rishikesh or Mussoorie and compare daily rates, excess KM fees, security deposits, and inclusions in a single transparent matrix.
-            </p>
-            <div className="pt-2">
-              <Link
-                href="/compare"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-orange hover:bg-brand-dark text-white font-bold text-xs shadow-md transition-all"
-              >
-                <Layers className="w-4 h-4" />
-                <span>Open Vehicle Comparison Engine</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Featured Vehicles Grid */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
+      {/* Featured Verified Rides */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200/80 pb-4 sm:pb-6">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-brand-orange">
-              Popular Rental Fleet
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-black uppercase tracking-wider mb-2 border border-emerald-200/80">
+              <ShieldCheck className="w-3.5 h-3.5" /> Inspected Fleet
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-heading text-navy-900 mt-1">
-              Top Booked Bikes, Scooters & Cars
+            <h2 className="text-2xl sm:text-3xl font-black font-heading text-slate-900">
+              Featured Verified Vehicles
             </h2>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+              Top-rated models with instant confirmation, digital condition records, and 24/7 roadside assistance.
+            </p>
           </div>
           <Link
             href="/vehicles"
-            className="text-xs font-bold text-brand-orange hover:text-brand-dark flex items-center gap-1 shrink-0"
+            className="inline-flex items-center gap-1.5 text-xs font-extrabold text-brand-orange hover:text-brand-dark transition-colors group"
           >
-            <span>Explore All 30+ Rides</span>
-            <ChevronRight className="w-4 h-4" />
+            <span>Browse Full Marketplace</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredVehicles.map((vehicle) => (
-            <VehicleCard key={vehicle._id} vehicle={vehicle} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-3xl p-5 border border-slate-200 animate-pulse space-y-4">
+                <div className="h-44 bg-slate-100 rounded-2xl" />
+                <div className="h-4 bg-slate-100 rounded w-1/2" />
+                <div className="h-4 bg-slate-100 rounded w-3/4" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            {featuredVehicles.map((vehicle) => (
+              <VehicleCard key={vehicle._id} vehicle={vehicle} />
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* Why RideSetu Matrix */}
-      <section className="bg-slate-100/70 py-16 sm:py-20 border-y border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12 space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-brand-orange">
-              Marketplace Advantage
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-heading text-navy-900">
-              Why Travellers Choose RideSetu
-            </h2>
-            <p className="text-slate-500 text-xs sm:text-sm">
-              We built RideSetu to eliminate unverified roadside shops, hidden damage penalties, and unfair monopoly pricing.
-            </p>
+      {/* How RideSetu Works 3-Step Flow */}
+      <ScrollReveal>
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-gradient-to-r from-navy-950 via-navy-900 to-navy-950 rounded-3xl p-6 sm:p-10 lg:p-14 text-white shadow-2xl space-y-8 sm:space-y-10 border border-white/10 relative overflow-hidden">
+            <div className="text-center max-w-2xl mx-auto space-y-2 relative z-10">
+              <span className="text-xs font-black text-brand-orange uppercase tracking-wider">
+                Seamless Rental Journey
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-black font-heading text-white">
+                How RideSetu Works in 3 Simple Steps
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 font-normal">
+                Transparent multi-vendor booking with zero hidden charges and instant digital handover.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 relative z-10">
+              {/* Step 1 */}
+              <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3 backdrop-blur-md">
+                <div className="w-10 h-10 rounded-xl bg-brand-orange text-white font-black text-base flex items-center justify-center">
+                  1
+                </div>
+                <h3 className="text-base sm:text-lg font-black font-heading text-white">
+                  Discover & Compare
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed font-normal">
+                  Select your destination, dates, and vehicle category. Compare partner ratings, inclusions, prices, and security deposits transparently.
+                </p>
+              </div>
+
+              {/* Step 2 */}
+              <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3 backdrop-blur-md">
+                <div className="w-10 h-10 rounded-xl bg-amber-400 text-navy-950 font-black text-base flex items-center justify-center">
+                  2
+                </div>
+                <h3 className="text-base sm:text-lg font-black font-heading text-white">
+                  Instant Reserve & Digital KYC
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed font-normal">
+                  Lock your vehicle instantly with Razorpay test payment. Pre-clear your Driving Licence digitally for 10-second pickup at the hub.
+                </p>
+              </div>
+
+              {/* Step 3 */}
+              <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3 backdrop-blur-md">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white font-black text-base flex items-center justify-center">
+                  3
+                </div>
+                <h3 className="text-base sm:text-lg font-black font-heading text-white">
+                  360° Handover & Ride
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed font-normal">
+                  Record vehicle condition digitally at pickup or hotel delivery. Enjoy your Himalayan ride with 24/7 Roadside SOS and automated deposit return.
+                </p>
+              </div>
+            </div>
           </div>
+        </section>
+      </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-brand-light text-brand-orange flex items-center justify-center">
-                <Layers className="w-6 h-6" />
-              </div>
-              <h3 className="font-bold text-slate-900 text-base font-heading">
-                Multi-Vendor Comparison
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Compare multiple local rental businesses in Tapovan, Mall Road, or ISBT to find the best daily rate, deposit, and condition without visiting individual shops.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <FileCheck2 className="w-6 h-6" />
-              </div>
-              <h3 className="font-bold text-slate-900 text-base font-heading">
-                Digital Handover Protection
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                360° photo records and scratch marker pinboards at pickup protect your refundable security deposit from false return damage claims.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                <Zap className="w-6 h-6" />
-              </div>
-              <h3 className="font-bold text-slate-900 text-base font-heading">
-                24/7 Roadside SOS Assistance
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Riding up to Neelkanth, Landour or Pangot? Our local partner network provides rapid mechanical backup and puncture assistance wherever you are.
-              </p>
-            </div>
+      {/* Frequently Asked Questions Accordion */}
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-black uppercase tracking-wider">
+            <HelpCircle className="w-3.5 h-3.5 text-brand-orange" /> FAQs
           </div>
-        </div>
-      </section>
-
-      {/* How RideSetu Works (Dual Workflow) */}
-      <section id="how-it-works" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-12 space-y-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-brand-orange">
-            Simple 4-Step Process
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold font-heading text-navy-900">
-            How RideSetu Works
+          <h2 className="text-2xl sm:text-3xl font-black font-heading text-slate-900">
+            Frequently Asked Questions
           </h2>
-          <p className="text-slate-500 text-xs sm:text-sm">
-            Frictionless digital rental mobility from reservation to deposit refund.
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Everything you need to know about renting with RideSetu in Uttarakhand.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="p-6 bg-white rounded-3xl border border-slate-200 text-center space-y-3">
-            <div className="w-10 h-10 rounded-full bg-navy-900 text-white font-extrabold flex items-center justify-center mx-auto text-sm">
-              1
-            </div>
-            <h3 className="font-bold text-slate-900 text-sm font-heading">Choose Destination & Dates</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Select Rishikesh, Mussoorie, Dehradun, or Nainital with your exact travel dates and pickup hub.
-            </p>
-          </div>
-
-          <div className="p-6 bg-white rounded-3xl border border-slate-200 text-center space-y-3">
-            <div className="w-10 h-10 rounded-full bg-brand-orange text-white font-extrabold flex items-center justify-center mx-auto text-sm">
-              2
-            </div>
-            <h3 className="font-bold text-slate-900 text-sm font-heading">Compare & Book</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Compare verified vendors, upload your Driving License for fast KYC, and pay transparently online.
-            </p>
-          </div>
-
-          <div className="p-6 bg-white rounded-3xl border border-slate-200 text-center space-y-3">
-            <div className="w-10 h-10 rounded-full bg-navy-900 text-white font-extrabold flex items-center justify-center mx-auto text-sm">
-              3
-            </div>
-            <h3 className="font-bold text-slate-900 text-sm font-heading">5-Min Digital Handover</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Scan your voucher QR code, complete 360° photo inspection with the partner agent, and ride freely.
-            </p>
-          </div>
-
-          <div className="p-6 bg-white rounded-3xl border border-slate-200 text-center space-y-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-600 text-white font-extrabold flex items-center justify-center mx-auto text-sm">
-              4
-            </div>
-            <h3 className="font-bold text-slate-900 text-sm font-heading">Return & Deposit Refund</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Return the vehicle at your hotel or shop, verify return checklist, and get 100% deposit released.
-            </p>
-          </div>
+        <div className="space-y-3">
+          {faqs.map((faq, idx) => {
+            const isOpen = activeFaq === idx;
+            return (
+              <div
+                key={idx}
+                className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden transition-all"
+              >
+                <button
+                  type="button"
+                  onClick={() => setActiveFaq(isOpen ? null : idx)}
+                  className="w-full p-4 sm:p-5 text-left font-black text-slate-900 text-xs sm:text-sm flex items-center justify-between gap-4 hover:text-brand-orange transition-colors"
+                >
+                  <span>{faq.q}</span>
+                  <span className={`transform transition-transform text-brand-orange font-bold text-base ${isOpen ? 'rotate-180' : ''}`}>
+                    ▼
+                  </span>
+                </button>
+                {isOpen && (
+                  <div className="px-4 sm:px-5 pb-5 text-xs text-slate-600 leading-relaxed font-normal border-t border-slate-100 pt-3">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
-      {/* Partner Onboarding Banner */}
-      <section id="partner-cta" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-navy-950 via-navy-900 to-navy-950 rounded-3xl p-8 sm:p-12 text-white border border-white/10 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
-          <div className="space-y-3 max-w-xl">
-            <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 font-bold text-xs border border-amber-500/30">
-              For Local Rental Businesses
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-heading">
-              List Your Fleet on RideSetu
-            </h2>
-            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-              Join Uttarakhand premier verified mobility network. Get verified bookings from verified tourists, digital inspection tools, automated calendar blocking, and guaranteed timely payouts.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full md:w-auto">
+      {/* Vendor List Fleet Call to Action */}
+      <ScrollReveal>
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-gradient-to-r from-amber-500 via-brand-orange to-orange-600 rounded-3xl p-6 sm:p-10 lg:p-12 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-2 text-center md:text-left">
+              <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-3 py-1 rounded-full text-white inline-block">
+                For Rental Operators & Fleet Owners
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black font-heading text-white">
+                Own Scooters, Bikes or Cars in Uttarakhand?
+              </h2>
+              <p className="text-xs sm:text-sm text-white/90 max-w-xl font-medium">
+                Partner with RideSetu. Get verified bookings, automated customer KYC, daily calendar management, and instant direct bank payouts.
+              </p>
+            </div>
             <Link
               href="/vendor"
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shadow-lg text-center transition-all"
+              className="px-6 py-3.5 rounded-2xl bg-navy-950 hover:bg-slate-900 text-white font-black text-xs sm:text-sm shadow-xl flex items-center gap-2 shrink-0 transition-transform active:scale-95"
             >
-              Open Vendor Portal
+              <Store className="w-4 h-4 text-amber-400" />
+              <span>List Your Fleet Today</span>
             </Link>
           </div>
-        </div>
-      </section>
-
-      {/* FAQ Accordion */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10 space-y-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-brand-orange">
-            Got Questions?
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold font-heading text-navy-900">
-            Frequently Asked Questions
-          </h2>
-        </div>
-
-        <div className="space-y-3">
-          {faqs.map((faq, idx) => (
-            <div
-              key={idx}
-              className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-colors"
-            >
-              <button
-                type="button"
-                onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
-                className="w-full p-4 sm:p-5 text-left font-bold text-slate-900 text-sm sm:text-base flex items-center justify-between gap-4"
-              >
-                <span>{faq.q}</span>
-                <ChevronRight
-                  className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${
-                    activeFaq === idx ? 'rotate-90 text-brand-orange' : ''
-                  }`}
-                />
-              </button>
-              {activeFaq === idx && (
-                <div className="px-5 pb-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
-                  {faq.a}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
+        </section>
+      </ScrollReveal>
     </div>
   );
 }

@@ -114,10 +114,26 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
+        {/* Bottom Legal Links Bar */}
+        <div className="pt-8 pb-4 flex flex-wrap items-center justify-between gap-4 text-xs border-b border-white/10 text-slate-400">
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            <Link href="/terms" className="hover:text-brand-orange transition-colors">Terms of Service</Link>
+            <Link href="/privacy" className="hover:text-brand-orange transition-colors">Privacy Policy</Link>
+            <Link href="/cancellation-policy" className="hover:text-brand-orange transition-colors">Cancellation Policy</Link>
+            <Link href="/refund-policy" className="hover:text-brand-orange transition-colors">Refund & Deposit Policy</Link>
+            <Link href="/rental-policy" className="hover:text-brand-orange transition-colors">Rental Guidelines</Link>
+            <Link href="/safety" className="hover:text-brand-orange transition-colors">Rider Safety & SOS</Link>
+            <Link href="/contact" className="hover:text-brand-orange transition-colors">Contact Support</Link>
+          </div>
+          <div className="text-[11px] text-slate-500">
+            Controlled Pilot Mode • Uttarakhand
+          </div>
+        </div>
+
         {/* Bottom Disclaimer */}
-        <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
+        <div className="pt-4 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
           <div>
-            © {new Date().getFullYear()} RideSetu Technologies Pvt. Ltd. All rights reserved. Made with <Heart className="w-3 h-3 text-red-500 inline fill-red-500" /> for Indian Travel Mobility.
+            © {new Date().getFullYear()} RideSetu Technologies. All rights reserved. Built for Himalayan Travel Mobility.
           </div>
           <div className="flex gap-4">
             <span className="text-slate-400">Compliant with Uttarakhand Transport & Rental Motor Cycle Scheme 1997</span>

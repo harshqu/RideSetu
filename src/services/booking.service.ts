@@ -1,11 +1,17 @@
 import mongoose from 'mongoose';
 import { Booking, IBooking, BookingStatus, DepositStatus } from '@/models/Booking';
 import { Vehicle, IVehicle } from '@/models/Vehicle';
+import { Vendor } from '@/models/Vendor';
+import { User } from '@/models/User';
 import { Coupon } from '@/models/Coupon';
 import { Payment } from '@/models/Payment';
+import { Payout } from '@/models/Payout';
+import { AuditLog } from '@/models/AuditLog';
 import { PricingService } from './pricing.service';
 import { AvailabilityService } from './availability.service';
 import { PayoutService } from './payout.service';
+import { PaymentService } from './payment.service';
+import { CancellationService } from './cancellation.service';
 import { NotificationService } from './notification.service';
 import { generateBookingNumber } from '@/lib/utils';
 import connectToDatabase from '@/lib/mongodb';
@@ -58,7 +64,6 @@ export interface CreateBookingDTO {
 export class BookingService {
   /**
    * Create a new booking backed by distributed MongoDB Atlas reservation locks
-   * Guaranteed safe across multiple instances and high-concurrency races
    */
   public static async createBooking(dto: CreateBookingDTO): Promise<{
     booking: IBooking;
@@ -75,9 +80,23 @@ export class BookingService {
       throw new Error('This vehicle is currently unavailable for booking.');
     }
 
-    // 1. Acquire distributed reservation lock on MongoDB Atlas
+    // Strict Server-Side Customer KYC & Driving Licence Validation
+    if (dto.customerId) {
+      const customer = await User.findById(dto.customerId).select('kycStatus drivingLicenseExpiry drivingLicenseStatus').lean();
+      if (customer) {
+        if (customer.kycStatus !== 'VERIFIED') {
+          throw new Error('KYC verification required before booking. Please complete your identity verification in the customer dashboard.');
+        }
+        if (customer.drivingLicenseExpiry && new Date(customer.drivingLicenseExpiry) <= new Date()) {
+          throw new Error('Your driving licence has expired. Please update your licence before booking.');
+        }
+      }
+    }
+
+    // Acquire or reuse distributed reservation lock on MongoDB Atlas
     const reservation = await AvailabilityService.acquireDistributedReservation({
       vehicleId: dto.vehicleId,
+      userId: dto.customerId,
       pickupDateTime: dto.pickupDateTime,
       returnDateTime: dto.returnDateTime,
     });
@@ -87,35 +106,30 @@ export class BookingService {
     }
 
     try {
-      // 2. Fetch coupon if provided
-      let coupon = null;
+      let coupon: any = null;
       if (dto.couponCode) {
-        coupon = await Coupon.findOne({
-          code: dto.couponCode.trim().toUpperCase(),
-          isActive: true,
-        }).lean();
+        coupon = await Coupon.findOne({ code: dto.couponCode.toUpperCase() });
       }
 
-      // 3. Centralized server-side pricing recalculation
       const pricing = PricingService.calculatePricing({
         vehicle: vehicle as any,
         pickupDateTime: dto.pickupDateTime,
         returnDateTime: dto.returnDateTime,
         pickupType: dto.pickupType,
-        coupon: coupon as any,
+        deliveryFee: vehicle.vendorId ? (vehicle.vendorId as any).baseDeliveryFee : 100,
+        coupon: coupon || undefined,
       });
 
       const bookingNumber = generateBookingNumber();
-      const providerOrderId = dto.razorpayOrderId || `order_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
-      const bookingData: Record<string, unknown> = {
+      const createdBooking = await Booking.create({
         bookingNumber,
         customerId: new mongoose.Types.ObjectId(dto.customerId),
         vendorId: vehicle.vendorId,
         vehicleId: vehicle._id,
         destinationId: vehicle.destinationId,
-        pickupDateTime: pricing.pickupDateTime,
-        returnDateTime: pricing.returnDateTime,
+        pickupDateTime: new Date(pricing.pickupDateTime),
+        returnDateTime: new Date(pricing.returnDateTime),
         pickupType: dto.pickupType,
         pickupLocation: dto.pickupLocation,
         dropoffLocation: dto.dropoffLocation,
@@ -128,73 +142,67 @@ export class BookingService {
         securityDeposit: pricing.securityDeposit,
         discountAmount: pricing.discountAmount,
         totalPayable: pricing.totalPayable,
-        depositStatus: 'PENDING' as DepositStatus,
-        bookingStatus: 'CONFIRMED' as BookingStatus,
+        depositStatus: 'HELD',
+        bookingStatus: 'CONFIRMED',
         paymentStatus: 'PAID',
         kycVerified: true,
         customerDetails: dto.customerDetails,
         emergencyContact: dto.emergencyContact,
-        couponCode: dto.couponCode || '',
-      };
+        deliveryLocation: dto.deliveryLocation,
+        couponCode: dto.couponCode?.toUpperCase(),
+      });
 
-      if (dto.deliveryLocation) {
-        bookingData.deliveryLocation = {
-          locationType: dto.deliveryLocation.locationType || 'DOORSTEP',
-          locationSource: dto.deliveryLocation.locationSource || 'MANUAL',
-          address: dto.deliveryLocation.address || dto.pickupLocation,
-          houseOrRoom: dto.deliveryLocation.houseOrRoom || '',
-          buildingName: dto.deliveryLocation.buildingName || '',
-          landmark: dto.deliveryLocation.landmark || '',
-          city: dto.deliveryLocation.city || 'Rishikesh',
-          state: dto.deliveryLocation.state || 'Uttarakhand',
-          country: dto.deliveryLocation.country || 'India',
-          pincode: dto.deliveryLocation.pincode || '',
-          latitude: dto.deliveryLocation.latitude,
-          longitude: dto.deliveryLocation.longitude,
-          placeId: dto.deliveryLocation.placeId || '',
-          formattedAddress: dto.deliveryLocation.formattedAddress || dto.pickupLocation,
-          contactName: dto.deliveryLocation.contactName || dto.customerDetails.fullName,
-          contactPhone: dto.deliveryLocation.contactPhone || dto.customerDetails.phone,
-          deliveryInstructions: dto.deliveryLocation.deliveryInstructions || '',
-        };
+      let providerOrderId = dto.razorpayOrderId;
+      if (!providerOrderId) {
+        const order = await PaymentService.createOrder({
+          amount: pricing.totalPayable,
+          currency: 'INR',
+          receipt: bookingNumber,
+          notes: {
+            bookingNumber,
+            vehicleId: dto.vehicleId,
+            customerId: dto.customerId,
+          },
+        });
+        providerOrderId = order.id;
+
+        await Payment.create({
+          bookingId: createdBooking._id,
+          customerId: createdBooking.customerId,
+          vendorId: createdBooking.vendorId,
+          vehicleId: createdBooking.vehicleId,
+          amount: pricing.totalPayable,
+          currency: 'INR',
+          provider: 'MOCK',
+          providerOrderId,
+          providerPaymentId: dto.razorpayPaymentId || `pay_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+          status: 'CAPTURED',
+          signatureVerified: true,
+          method: dto.paymentMethod || 'UPI',
+          breakdown: {
+            basePrice: pricing.basePrice,
+            deliveryCharge: pricing.deliveryCharge,
+            platformFee: pricing.platformFee,
+            gstTax: pricing.taxes,
+            couponDiscount: pricing.discountAmount,
+            securityDeposit: pricing.securityDeposit,
+            totalPayable: pricing.totalPayable,
+          },
+          metadata: {
+            bookingNumber,
+            vehicleName: `${vehicle.brand} ${vehicle.model}`,
+            basePrice: pricing.basePrice,
+            deposit: pricing.securityDeposit,
+          },
+        });
       }
 
-      const createdBooking = await Booking.create(bookingData);
-
-      // Confirm distributed lock in MongoDB Atlas
-      await AvailabilityService.confirmReservation(reservation.reservation._id, createdBooking._id);
-
-      // Create Payment Record (Idempotency token stored)
-      const paymentData = {
-        bookingId: createdBooking._id,
-        customerId: new mongoose.Types.ObjectId(dto.customerId),
-        vendorId: vehicle.vendorId,
-        amount: pricing.totalPayable,
-        currency: 'INR',
-        provider: dto.paymentProvider || 'MOCK',
-        providerOrderId,
-        providerPaymentId: dto.razorpayPaymentId || `pay_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
-        status: 'SUCCESS',
-        method: dto.paymentMethod || 'UPI',
-        metadata: {
-          bookingNumber,
-          vehicleName: `${vehicle.brand} ${vehicle.model}`,
-          basePrice: pricing.basePrice,
-          deposit: pricing.securityDeposit,
-        },
-      };
-
-      await Payment.create(paymentData);
-
-      // Increment vehicle total bookings
       await Vehicle.findByIdAndUpdate(vehicle._id, { $inc: { totalBookings: 1 } });
 
-      // Increment coupon usage count if applied
       if (coupon) {
         await Coupon.findByIdAndUpdate(coupon._id, { $inc: { usageCount: 1 } });
       }
 
-      // Multi-channel notification dispatch
       await NotificationService.sendBookingConfirmation({
         userId: dto.customerId,
         bookingNumber,
@@ -211,27 +219,33 @@ export class BookingService {
         paymentOrderId: providerOrderId,
       };
     } catch (err) {
-      // Release reservation hold on failure
       await AvailabilityService.releaseReservation(reservation.reservation._id);
       throw err;
     }
   }
 
   /**
-   * Cancel booking with refund status tracking
+   * Cancel booking with server-side cancellation policy calculation & refund tracking
    */
   public static async cancelBooking(params: {
     bookingId: string;
     userId: string;
     role: string;
+    vendorId?: string;
     reason: string;
-  }): Promise<IBooking> {
+    overrideRefundAmount?: number;
+  }): Promise<{ booking: IBooking; refundSummary: any }> {
     await connectToDatabase();
 
     const booking = await Booking.findById(params.bookingId);
     if (!booking) throw new Error('Booking not found.');
 
-    if (booking.bookingStatus === 'CANCELLED') {
+    if (
+      booking.bookingStatus === 'CANCELLED' ||
+      booking.bookingStatus === 'CANCELLED_BY_CUSTOMER' ||
+      booking.bookingStatus === 'CANCELLED_BY_VENDOR' ||
+      booking.bookingStatus === 'CANCELLED_BY_ADMIN'
+    ) {
       throw new Error('Booking is already cancelled.');
     }
 
@@ -239,12 +253,89 @@ export class BookingService {
       throw new Error('Completed bookings cannot be cancelled.');
     }
 
-    booking.bookingStatus = 'CANCELLED';
-    booking.cancellationReason = params.reason;
+    // Role-based authorization & ownership checks
+    if (params.role === 'CUSTOMER' && booking.customerId.toString() !== params.userId) {
+      throw new Error('Unauthorized: You can only cancel your own bookings.');
+    }
+
+    if (params.role === 'VENDOR') {
+      if (params.vendorId && booking.vendorId.toString() !== params.vendorId) {
+        throw new Error('Unauthorized: You cannot cancel bookings belonging to another vendor.');
+      }
+    }
+
+    // Calculate server-side refund
+    let refundCalc: any;
+    let newStatus: BookingStatus = 'CANCELLED';
+
+    if (params.role === 'VENDOR') {
+      refundCalc = CancellationService.calculateVendorCancellationRefund(booking);
+      newStatus = 'CANCELLED_BY_VENDOR';
+
+      // Vendor cancellation reliability penalty
+      await Vendor.findByIdAndUpdate(booking.vendorId, {
+        $inc: { cancellationCount: 1, reliabilityScore: -5 },
+      });
+    } else if (params.role === 'ADMIN') {
+      refundCalc = CancellationService.calculateAdminCancellationRefund(booking, params.overrideRefundAmount);
+      newStatus = 'CANCELLED_BY_ADMIN';
+    } else {
+      refundCalc = CancellationService.calculateCustomerCancellationRefund({ booking });
+      newStatus = 'CANCELLED_BY_CUSTOMER';
+    }
+
+    // Update booking metadata
+    booking.bookingStatus = newStatus;
+    booking.cancelledBy = (params.role === 'VENDOR' ? 'VENDOR' : params.role === 'ADMIN' ? 'ADMIN' : 'CUSTOMER') as any;
+    booking.cancelledAt = new Date();
+    booking.cancellationReason = params.reason || 'Requested cancellation.';
+    booking.cancellationRefundAmount = refundCalc.totalRefundAmount;
+    booking.cancellationFee = refundCalc.cancellationFee;
     booking.depositStatus = 'REFUNDED';
+    booking.refundStatus = refundCalc.totalRefundAmount > 0 ? 'PROCESSED' : 'NOT_APPLICABLE';
+    booking.paymentStatus =
+      refundCalc.totalRefundAmount >= booking.totalPayable
+        ? 'REFUNDED'
+        : refundCalc.totalRefundAmount > 0
+        ? 'PARTIALLY_REFUNDED'
+        : booking.paymentStatus;
+
     await booking.save();
 
-    // Release any associated reservation lock
+    // Idempotent Payment Refund Processing
+    if (refundCalc.totalRefundAmount > 0) {
+      const payment = await Payment.findOne({ bookingId: booking._id });
+      if (payment && payment.status !== 'REFUNDED') {
+        const refundResult = await PaymentService.processRefund({
+          paymentId: payment.providerPaymentId || payment._id.toString(),
+          amount: refundCalc.totalRefundAmount,
+          notes: {
+            bookingId: booking._id.toString(),
+            bookingNumber: booking.bookingNumber,
+            cancelledBy: params.role,
+          },
+        });
+
+        payment.refundStatus = 'PROCESSED';
+        const totalRefunded = (payment.refundedAmount || 0) + refundCalc.totalRefundAmount;
+        payment.refundedAmount = totalRefunded;
+        payment.status = totalRefunded >= payment.amount ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
+
+        if (!payment.refunds) payment.refunds = [];
+        payment.refunds.push({
+          refundId: refundResult.refundId,
+          amount: refundCalc.totalRefundAmount,
+          reason: params.reason || 'Booking cancellation',
+          status: 'PROCESSED',
+          providerRefundId: refundResult.refundId,
+          createdAt: new Date(),
+        });
+
+        await payment.save();
+      }
+    }
+
+    // Release future availability
     await AvailabilityService.isVehicleAvailable({
       vehicleId: booking.vehicleId,
       pickupDateTime: booking.pickupDateTime,
@@ -252,7 +343,40 @@ export class BookingService {
       excludeBookingId: booking._id,
     });
 
-    return booking;
+    // Invalidate vendor payout eligibility
+    await Payout.updateMany({ bookingId: booking._id }, { status: 'CANCELLED' });
+
+    // Create AuditLog
+    await AuditLog.create({
+      userId: new mongoose.Types.ObjectId(params.userId),
+      action: `BOOKING_CANCEL_${params.role.toUpperCase()}`,
+      resource: 'Booking',
+      resourceId: booking._id.toString(),
+      details: {
+        bookingNumber: booking.bookingNumber,
+        refundAmount: refundCalc.totalRefundAmount,
+        cancellationFee: refundCalc.cancellationFee,
+        reason: params.reason,
+      },
+    });
+
+    // Multi-channel Notification
+    const vehicle = await Vehicle.findById(booking.vehicleId).select('brand model').lean<IVehicle>();
+    const vehicleName = vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Rental Vehicle';
+
+    await NotificationService.sendBookingCancelled({
+      userId: booking.customerId.toString(),
+      bookingNumber: booking.bookingNumber,
+      vehicleName,
+      refundAmount: refundCalc.totalRefundAmount,
+      cancelledBy: params.role,
+      reason: params.reason,
+      bookingId: booking._id.toString(),
+      customerEmail: booking.customerDetails.email,
+      customerPhone: booking.customerDetails.phone,
+    });
+
+    return { booking, refundSummary: refundCalc };
   }
 
   /**
@@ -272,6 +396,17 @@ export class BookingService {
 
     // Generate Vendor Payout strictly after completion
     await PayoutService.createPayoutForCompletedBooking(booking);
+
+    // Dispatch Review Request Notification to customer
+    const vehicle = await Vehicle.findById(booking.vehicleId).select('brand model').lean<IVehicle>();
+    const vehicleName = vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Rental Vehicle';
+
+    await NotificationService.sendReviewRequest({
+      userId: booking.customerId.toString(),
+      bookingNumber: booking.bookingNumber,
+      vehicleName,
+      bookingId: booking._id.toString(),
+    });
 
     return booking;
   }

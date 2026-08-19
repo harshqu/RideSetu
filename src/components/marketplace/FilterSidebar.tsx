@@ -32,16 +32,16 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 p-5 space-y-6 shadow-sm">
+    <div className="bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-6 space-y-6 shadow-sm">
       {/* Title & Reset */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div className="flex items-center gap-2 font-bold font-heading text-slate-900 text-sm">
+        <div className="flex items-center gap-2 font-extrabold font-heading text-slate-900 text-sm">
           <Filter className="w-4 h-4 text-brand-orange" />
           <span>Filters & Sort</span>
         </div>
         <button
           onClick={onReset}
-          className="text-[11px] font-semibold text-slate-500 hover:text-brand-orange flex items-center gap-1 transition-colors"
+          className="text-[11px] font-bold text-slate-500 hover:text-brand-orange flex items-center gap-1 transition-colors active:scale-95"
         >
           <RotateCcw className="w-3 h-3" />
           <span>Reset</span>
@@ -50,25 +50,25 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
 
       {/* Sorting Dropdown */}
       <div>
-        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-          Sort Results
+        <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
+          Sort Marketplace
         </label>
         <select
           value={filters.sort}
           onChange={(e) => updateFilter('sort', e.target.value)}
-          className="w-full text-xs font-semibold p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:ring-2 focus:ring-brand-orange outline-none cursor-pointer"
+          className="w-full text-xs font-bold p-3 border border-slate-200/80 rounded-2xl bg-slate-50 focus:ring-2 focus:ring-brand-orange outline-none cursor-pointer text-slate-900"
         >
           <option value="recommended">⭐ Recommended & Top Rated</option>
           <option value="price_asc">💰 Price: Low to High</option>
           <option value="price_desc">💎 Price: High to Low</option>
-          <option value="popular">🔥 Most Booked Rides</option>
+          <option value="popular">🔥 Most Booked Fleet</option>
           <option value="newest">✨ Newest Models (2024)</option>
         </select>
       </div>
 
       {/* Category Filter */}
       <div>
-        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+        <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
           Vehicle Category
         </label>
         <div className="space-y-1.5 text-xs">
@@ -81,10 +81,10 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
           ].map((cat) => (
             <label
               key={cat.id}
-              className={`flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${
+              className={`flex items-center justify-between p-2.5 rounded-2xl border cursor-pointer transition-all ${
                 filters.category === cat.id
-                  ? 'border-brand-orange bg-brand-light font-bold text-brand-dark'
-                  : 'border-slate-100 hover:bg-slate-50 text-slate-700'
+                  ? 'border-brand-orange bg-brand-light font-extrabold text-brand-dark shadow-sm'
+                  : 'border-slate-100 hover:bg-slate-50 text-slate-700 font-medium'
               }`}
             >
               <span>{cat.label}</span>
@@ -104,8 +104,8 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
       {/* Price Range Slider */}
       <div>
         <div className="flex items-center justify-between text-xs mb-2">
-          <span className="font-bold text-slate-700 uppercase tracking-wider">Max Price / Day</span>
-          <span className="font-extrabold text-navy-900 font-heading text-sm">
+          <span className="font-extrabold text-slate-400 uppercase tracking-wider text-[11px]">Max Price / Day</span>
+          <span className="font-black text-navy-950 font-heading text-sm">
             {formatINR(filters.maxPrice)}
           </span>
         </div>
@@ -126,7 +126,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
 
       {/* Transmission */}
       <div>
-        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+        <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
           Transmission
         </label>
         <div className="grid grid-cols-3 gap-1.5 text-xs">
@@ -139,9 +139,9 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
               key={item.id}
               type="button"
               onClick={() => updateFilter('transmission', item.id)}
-              className={`py-1.5 text-center rounded-xl border font-semibold transition-all ${
+              className={`py-2 text-center rounded-xl border font-bold transition-all ${
                 filters.transmission === item.id
-                  ? 'border-navy-900 bg-navy-900 text-white'
+                  ? 'border-navy-950 bg-navy-950 text-white shadow-sm'
                   : 'border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
             >
@@ -153,7 +153,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
 
       {/* Fuel Type */}
       <div>
-        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+        <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
           Fuel Type
         </label>
         <div className="grid grid-cols-2 gap-1.5 text-xs">
@@ -167,7 +167,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
               key={item.id}
               type="button"
               onClick={() => updateFilter('fuelType', item.id)}
-              className={`py-1.5 px-2 text-left rounded-xl border text-xs font-semibold transition-all ${
+              className={`py-2 px-2.5 text-left rounded-xl border text-xs font-bold transition-all ${
                 filters.fuelType === item.id
                   ? 'border-brand-orange bg-brand-light text-brand-dark'
                   : 'border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -181,8 +181,8 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
 
       {/* Quality Toggles */}
       <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
-        <label className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 cursor-pointer">
-          <span className="flex items-center gap-1.5 font-medium text-slate-800">
+        <label className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 cursor-pointer">
+          <span className="flex items-center gap-1.5 font-bold text-slate-800">
             <Truck className="w-3.5 h-3.5 text-blue-600" /> Doorstep Delivery
           </span>
           <input
@@ -193,8 +193,8 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
           />
         </label>
 
-        <label className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 cursor-pointer">
-          <span className="flex items-center gap-1.5 font-medium text-slate-800">
+        <label className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 cursor-pointer">
+          <span className="flex items-center gap-1.5 font-bold text-slate-800">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Verified Vendors Only
           </span>
           <input

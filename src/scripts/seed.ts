@@ -15,6 +15,10 @@ import { Review } from '../models/Review';
 import { Coupon } from '../models/Coupon';
 import { SupportTicket } from '../models/SupportTicket';
 import { Notification } from '../models/Notification';
+import { KYCVerification } from '../models/KYCVerification';
+import { OTPVerification } from '../models/OTPVerification';
+import { CustomerSavedLocation } from '../models/CustomerSavedLocation';
+import { VendorPayoutProfile } from '../models/VendorPayoutProfile';
 
 import connectToDatabase from '../lib/mongodb';
 
@@ -36,6 +40,10 @@ export async function seedDatabase() {
     Coupon,
     SupportTicket,
     Notification,
+    KYCVerification,
+    OTPVerification,
+    CustomerSavedLocation,
+    VendorPayoutProfile,
   ];
   for (const model of models) {
     await (model as any).deleteMany({});
@@ -56,7 +64,11 @@ export async function seedDatabase() {
       avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
       kycStatus: 'VERIFIED',
       drivingLicenseStatus: 'VERIFIED',
-      drivingLicenseNumber: 'UK0720210084920',
+      drivingLicenseNumber: 'UK07 •••• •••• 4920',
+      drivingLicenseExpiry: new Date('2032-12-31'),
+      emailVerified: true,
+      phoneVerified: true,
+      dateOfBirth: new Date('1998-05-15'),
       emergencyContact: {
         name: 'Rohan Sharma',
         phone: '+91 98765 43219',
@@ -78,6 +90,8 @@ export async function seedDatabase() {
       avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=200&q=80',
       kycStatus: 'VERIFIED',
       drivingLicenseStatus: 'VERIFIED',
+      emailVerified: true,
+      phoneVerified: true,
     },
     {
       name: 'Rajesh Rawat (Tapovan Moto)',
@@ -88,6 +102,8 @@ export async function seedDatabase() {
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
       kycStatus: 'VERIFIED',
       drivingLicenseStatus: 'VERIFIED',
+      emailVerified: true,
+      phoneVerified: true,
     },
     {
       name: 'Pooja Bisht (Doon Mobility)',
@@ -98,6 +114,8 @@ export async function seedDatabase() {
       avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=200&q=80',
       kycStatus: 'VERIFIED',
       drivingLicenseStatus: 'VERIFIED',
+      emailVerified: true,
+      phoneVerified: true,
     },
     {
       name: 'Sunil Joshi (Naini Riders)',
@@ -108,6 +126,8 @@ export async function seedDatabase() {
       avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
       kycStatus: 'VERIFIED',
       drivingLicenseStatus: 'VERIFIED',
+      emailVerified: true,
+      phoneVerified: true,
     },
     {
       name: 'RideSetu Super Admin',
@@ -118,8 +138,32 @@ export async function seedDatabase() {
       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80',
       kycStatus: 'VERIFIED',
       drivingLicenseStatus: 'VERIFIED',
+      emailVerified: true,
+      phoneVerified: true,
     },
   ]);
+
+  console.log('[Seed] Seeding customer KYC records...');
+  await KYCVerification.create({
+    userId: customerUser._id,
+    status: 'VERIFIED',
+    documentType: 'DRIVING_LICENCE',
+    licenceNumberEncrypted: 'mock_encrypted_dl_aarav',
+    maskedLicenceNumber: 'UK07 •••• •••• 4920',
+    nameOnLicence: 'Aarav Sharma',
+    dateOfBirth: new Date('1998-05-15'),
+    issueDate: new Date('2021-04-10'),
+    expiryDate: new Date('2032-12-31'),
+    vehicleClasses: ['MCWG', 'LMV'],
+    documentFrontStorageKey: `kyc_docs/${customerUser._id}/mock_dl_front.jpg`,
+    documentBackStorageKey: `kyc_docs/${customerUser._id}/mock_dl_back.jpg`,
+    verificationMethod: 'ADMIN_REVIEW',
+    verificationProvider: 'ADMIN_REVIEW',
+    verificationReference: 'KYC_REF_ADM_DEMO01',
+    submittedAt: new Date(Date.now() - 30 * 86400000),
+    verifiedAt: new Date(Date.now() - 29 * 86400000),
+    reviewedBy: adminUser._id,
+  });
 
   console.log('[Seed] Creating Uttarakhand destinations...');
   const destinations = await Destination.create([

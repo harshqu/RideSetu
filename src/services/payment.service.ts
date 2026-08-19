@@ -5,11 +5,12 @@ export interface CreateOrderParams {
   currency?: string;
   receipt?: string;
   notes?: Record<string, string>;
+  idempotencyKey?: string;
 }
 
 export interface RazorpayOrderResult {
   id: string;
-  amount: number;
+  amount: number; // in paise
   currency: string;
   receipt?: string;
   status: string;
@@ -18,12 +19,16 @@ export interface RazorpayOrderResult {
 }
 
 export class PaymentService {
-  private static getKeyId(): string {
+  public static getKeyId(): string {
     return process.env.RAZORPAY_KEY_ID || 'rzp_test_ridesetu_sandbox';
   }
 
-  private static getKeySecret(): string {
+  public static getKeySecret(): string {
     return process.env.RAZORPAY_KEY_SECRET || 'ridesetu_sandbox_secret_key_2026';
+  }
+
+  public static getWebhookSecret(): string {
+    return process.env.RAZORPAY_WEBHOOK_SECRET || 'ridesetu_webhook_secret_2026';
   }
 
   /**
@@ -32,7 +37,13 @@ export class PaymentService {
   public static isConfigured(): boolean {
     const keyId = process.env.RAZORPAY_KEY_ID;
     const secret = process.env.RAZORPAY_KEY_SECRET;
-    return !!(keyId && secret && !keyId.includes('placeholder') && !keyId.includes('your_'));
+    return !!(
+      keyId &&
+      secret &&
+      !keyId.includes('placeholder') &&
+      !keyId.includes('your_') &&
+      process.env.PAYMENT_PROVIDER === 'RAZORPAY'
+    );
   }
 
   /**
@@ -82,7 +93,7 @@ export class PaymentService {
       }
     }
 
-    // Development Sandbox Simulation
+    // Development / Test Sandbox Simulation
     return {
       id: `order_sandbox_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
       amount: amountInPaise,
@@ -101,8 +112,9 @@ export class PaymentService {
     orderId: string;
     paymentId: string;
     signature: string;
+    customSecret?: string;
   }): boolean {
-    const { orderId, paymentId, signature } = params;
+    const { orderId, paymentId, signature, customSecret } = params;
     if (!orderId || !paymentId || !signature) {
       return false;
     }
@@ -112,11 +124,33 @@ export class PaymentService {
       return true;
     }
 
-    const keySecret = this.getKeySecret();
+    const keySecret = customSecret || this.getKeySecret();
     const body = `${orderId}|${paymentId}`;
     const expectedSignature = crypto
       .createHmac('sha256', keySecret)
       .update(body)
+      .digest('hex');
+
+    const expBuf = Buffer.from(expectedSignature, 'utf-8');
+    const sigBuf = Buffer.from(signature, 'utf-8');
+
+    if (expBuf.length !== sigBuf.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(expBuf, sigBuf);
+  }
+
+  /**
+   * Verify Razorpay webhook raw signature
+   */
+  public static verifyWebhookSignature(rawBody: string, signature: string, customWebhookSecret?: string): boolean {
+    if (!rawBody || !signature) return false;
+
+    const secret = customWebhookSecret || this.getWebhookSecret();
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(rawBody)
       .digest('hex');
 
     const expBuf = Buffer.from(expectedSignature, 'utf-8');
@@ -140,7 +174,7 @@ export class PaymentService {
     const keyId = this.getKeyId();
     const keySecret = this.getKeySecret();
 
-    if (this.isConfigured() && !params.paymentId.startsWith('pay_sandbox_') && !params.paymentId.startsWith('pay_')) {
+    if (this.isConfigured() && !params.paymentId.startsWith('pay_sandbox_') && !params.paymentId.startsWith('pay_mock_')) {
       try {
         const authHeader = `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString('base64')}`;
         const body: Record<string, unknown> = { notes: params.notes || {} };

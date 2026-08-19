@@ -3,7 +3,10 @@ import mongoose from 'mongoose';
 import connectToDatabase from '@/lib/mongodb';
 import { Dispute } from '@/models/Dispute';
 import { Booking } from '@/models/Booking';
+import { AuditLog } from '@/models/AuditLog';
 import { getSessionFromRequest, assertRole } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
@@ -22,7 +25,7 @@ export async function GET(request: Request) {
     }
 
     const disputes = await Dispute.find(query)
-      .populate('bookingId', 'bookingNumber pickupDateTime returnDateTime securityDeposit')
+      .populate('bookingId', 'bookingNumber pickupDateTime returnDateTime securityDeposit totalPayable')
       .populate('vendorId', 'businessName ownerName phone')
       .populate('customerId', 'name email phone')
       .sort({ createdAt: -1 })
@@ -43,10 +46,20 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { bookingId, claimedAmount, vendorRemarks, beforePhotos = [], afterPhotos = [] } = body;
+    const {
+      bookingId,
+      category = 'OTHER',
+      claimedAmount = 0,
+      description = '',
+      vendorRemarks = '',
+      customerRemarks = '',
+      beforePhotos = [],
+      afterPhotos = [],
+      evidencePhotos = [],
+    } = body;
 
-    if (!bookingId || !claimedAmount || !vendorRemarks) {
-      return NextResponse.json({ error: 'Booking ID, claim amount, and vendor remarks required.' }, { status: 400 });
+    if (!bookingId) {
+      return NextResponse.json({ error: 'Booking ID is required.' }, { status: 400 });
     }
 
     await connectToDatabase();
@@ -55,25 +68,51 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     }
 
+    // Role ownership validation
+    if (session.role === 'CUSTOMER' && booking.customerId.toString() !== session.userId) {
+      return NextResponse.json({ error: 'Forbidden: You can only raise disputes for your own bookings.' }, { status: 403 });
+    }
+    if (session.role === 'VENDOR' && session.vendorId && booking.vendorId.toString() !== session.vendorId) {
+      return NextResponse.json({ error: 'Forbidden: You can only raise disputes for your own bookings.' }, { status: 403 });
+    }
+
     const dispute = await Dispute.create({
       bookingId: booking._id,
       vendorId: booking.vendorId,
       customerId: booking.customerId,
+      category,
+      raisedBy: session.role === 'CUSTOMER' ? 'CUSTOMER' : 'VENDOR',
       status: 'OPEN',
-      claimedAmount: Number(claimedAmount),
+      claimedAmount: Number(claimedAmount || 0),
+      description: description || customerRemarks || vendorRemarks,
       evidence: {
         beforePhotos,
         afterPhotos,
+        evidencePhotos,
         handoverReports: [booking.handoverPickupId, booking.handoverReturnId].filter(Boolean),
       },
-      vendorRemarks,
+      vendorRemarks: session.role === 'VENDOR' ? (vendorRemarks || description) : '',
+      customerRemarks: session.role === 'CUSTOMER' ? (customerRemarks || description) : '',
     });
 
     booking.bookingStatus = 'DISPUTED';
     booking.depositStatus = 'HELD';
     await booking.save();
 
-    return NextResponse.json({ success: true, dispute, message: 'Dispute case opened for admin review.' });
+    await AuditLog.create({
+      userId: new mongoose.Types.ObjectId(session.userId),
+      action: 'DISPUTE_RAISED',
+      resource: 'Dispute',
+      resourceId: dispute._id.toString(),
+      details: {
+        bookingId: booking._id.toString(),
+        bookingNumber: booking.bookingNumber,
+        category,
+        claimedAmount,
+      },
+    });
+
+    return NextResponse.json({ success: true, dispute, message: 'Dispute case submitted for administrative review.' });
   } catch (error: any) {
     console.error('[API Disputes POST Error]:', error);
     return NextResponse.json({ error: error.message || 'Failed to file dispute' }, { status: 500 });
@@ -84,7 +123,7 @@ export async function PATCH(request: Request) {
   try {
     const session = getSessionFromRequest(request);
     const authCheck = assertRole(session, ['ADMIN']);
-    if (!authCheck.authorized) {
+    if (!authCheck.authorized || !session) {
       return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
     }
 
@@ -113,6 +152,18 @@ export async function PATCH(request: Request) {
       booking.depositStatus = dispute.deductedAmount > 0 ? 'PARTIALLY_DEDUCTED' : 'REFUNDED';
       await booking.save();
     }
+
+    await AuditLog.create({
+      userId: new mongoose.Types.ObjectId(session.userId),
+      action: 'DISPUTE_RESOLVED',
+      resource: 'Dispute',
+      resourceId: dispute._id.toString(),
+      details: {
+        status,
+        deductedAmount,
+        resolution,
+      },
+    });
 
     return NextResponse.json({ success: true, dispute, message: 'Dispute resolved successfully.' });
   } catch (error: any) {
