@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Calendar, Clock, Car, Sparkles, Search, Compass, ChevronRight } from 'lucide-react';
+import { MapPin, Calendar, Clock, Car, Sparkles, Search, ChevronRight, Compass } from 'lucide-react';
 
 interface SearchWidgetProps {
   initialDestination?: string;
@@ -37,18 +37,18 @@ export const SearchWidget: React.FC<SearchWidgetProps> = ({
   const categories = [
     { id: 'ALL', label: 'All Fleet', icon: '✨' },
     { id: 'SCOOTER', label: 'Scooty', icon: '🛵' },
-    { id: 'MOTORCYCLE', label: 'Bike', icon: '🏍️' },
-    { id: 'CAR', label: 'Car / SUV', icon: '🚗' },
+    { id: 'MOTORCYCLE', label: 'Bikes', icon: '🏍️' },
+    { id: 'CAR', label: 'Self-Drive Cars', icon: '🚗' },
     { id: 'EV', label: 'Electric EV', icon: '⚡' },
   ];
 
   const destinations = [
-    { slug: 'rishikesh', name: 'Rishikesh', badge: 'Adventure' },
-    { slug: 'mussoorie', name: 'Mussoorie', badge: 'Hill Station' },
-    { slug: 'dehradun', name: 'Dehradun', badge: 'Airport Hub' },
+    { slug: 'rishikesh', name: 'Rishikesh', badge: 'Tapovan & Ghats' },
+    { slug: 'mussoorie', name: 'Mussoorie', badge: 'Mall Road Hills' },
+    { slug: 'dehradun', name: 'Dehradun', badge: 'Airport & ISBT' },
     { slug: 'nainital', name: 'Nainital', badge: 'Lake City' },
-    { slug: 'haridwar', name: 'Haridwar', badge: 'Holy Ghats' },
-    { slug: 'haldwani', name: 'Haldwani', badge: 'Kathgodam Rail' },
+    { slug: 'haridwar', name: 'Haridwar', badge: 'Holy Railway Hub' },
+    { slug: 'haldwani', name: 'Haldwani', badge: 'Kathgodam Base' },
   ];
 
   const handleSearch = (e: React.FormEvent) => {
@@ -71,18 +71,18 @@ export const SearchWidget: React.FC<SearchWidgetProps> = ({
   };
 
   return (
-    <div className={`bg-white rounded-3xl shadow-xl shadow-slate-900/10 border border-slate-100 p-4 sm:p-6 ${className}`}>
-      {/* Category Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 border-b border-slate-100 no-scrollbar">
+    <div className={`bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-slate-950/20 border border-white/60 p-5 sm:p-7 text-slate-900 ${className}`}>
+      {/* Category Filter Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-5 border-b border-slate-100 no-scrollbar">
         {categories.map((c) => (
           <button
             key={c.id}
             type="button"
             onClick={() => setCategory(c.id)}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap active:scale-95 ${
               category === c.id
-                ? 'bg-navy-900 text-white shadow-md'
-                : 'bg-slate-50 hover:bg-slate-100 text-slate-700'
+                ? 'bg-navy-950 text-white shadow-md shadow-navy-950/20'
+                : 'bg-slate-100/80 hover:bg-slate-200/80 text-slate-700'
             }`}
           >
             <span>{c.icon}</span>
@@ -93,95 +93,75 @@ export const SearchWidget: React.FC<SearchWidgetProps> = ({
 
       <form onSubmit={handleSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Destination Picker */}
-        <div className="bg-slate-50/80 hover:bg-slate-100/80 p-3 rounded-2xl border border-slate-200 transition-colors">
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
+        <div className="bg-slate-50 hover:bg-slate-100/90 p-3.5 rounded-2xl border border-slate-200/80 transition-colors">
+          <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
             <MapPin className="w-3.5 h-3.5 text-brand-orange" />
-            Where are you going?
+            Destination Hub
           </label>
           <select
             value={destination}
             onChange={(e) => setDestination(e.target.value)}
-            className="w-full bg-transparent font-bold text-slate-900 text-sm outline-none cursor-pointer"
+            className="w-full bg-transparent font-black text-slate-900 text-sm focus:outline-none cursor-pointer"
           >
             {destinations.map((d) => (
-              <option key={d.slug} value={d.slug}>
-                {d.name}, Uttarakhand ({d.badge})
+              <option key={d.slug} value={d.slug} className="text-slate-900">
+                {d.name} ({d.badge})
               </option>
             ))}
           </select>
         </div>
 
         {/* Pickup Date & Time */}
-        <div className="bg-slate-50/80 hover:bg-slate-100/80 p-3 rounded-2xl border border-slate-200 transition-colors">
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
+        <div className="bg-slate-50 hover:bg-slate-100/90 p-3.5 rounded-2xl border border-slate-200/80 transition-colors">
+          <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5 text-brand-orange" />
             Pickup Date & Time
           </label>
-          <div className="flex items-center gap-1.5">
+          <div className="flex gap-2 items-center">
             <input
               type="date"
-              required
               value={pickupDate}
               min={new Date().toISOString().split('T')[0]}
               onChange={(e) => setPickupDate(e.target.value)}
-              className="bg-transparent font-semibold text-slate-900 text-xs sm:text-sm outline-none w-3/5"
+              className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none w-full"
             />
-            <select
+            <input
+              type="time"
               value={pickupTime}
               onChange={(e) => setPickupTime(e.target.value)}
-              className="bg-transparent font-semibold text-slate-900 text-xs outline-none w-2/5"
-            >
-              {Array.from({ length: 24 }).map((_, i) => {
-                const hour = i.toString().padStart(2, '0');
-                return (
-                  <React.Fragment key={hour}>
-                    <option value={`${hour}:00`}>{`${hour}:00`}</option>
-                    <option value={`${hour}:30`}>{`${hour}:30`}</option>
-                  </React.Fragment>
-                );
-              })}
-            </select>
+              className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none w-20"
+            />
           </div>
         </div>
 
         {/* Return Date & Time */}
-        <div className="bg-slate-50/80 hover:bg-slate-100/80 p-3 rounded-2xl border border-slate-200 transition-colors">
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
+        <div className="bg-slate-50 hover:bg-slate-100/90 p-3.5 rounded-2xl border border-slate-200/80 transition-colors">
+          <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
             <Clock className="w-3.5 h-3.5 text-brand-orange" />
             Return Date & Time
           </label>
-          <div className="flex items-center gap-1.5">
+          <div className="flex gap-2 items-center">
             <input
               type="date"
-              required
               value={returnDate}
               min={pickupDate}
               onChange={(e) => setReturnDate(e.target.value)}
-              className="bg-transparent font-semibold text-slate-900 text-xs sm:text-sm outline-none w-3/5"
+              className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none w-full"
             />
-            <select
+            <input
+              type="time"
               value={returnTime}
               onChange={(e) => setReturnTime(e.target.value)}
-              className="bg-transparent font-semibold text-slate-900 text-xs outline-none w-2/5"
-            >
-              {Array.from({ length: 24 }).map((_, i) => {
-                const hour = i.toString().padStart(2, '0');
-                return (
-                  <React.Fragment key={hour}>
-                    <option value={`${hour}:00`}>{`${hour}:00`}</option>
-                    <option value={`${hour}:30`}>{`${hour}:30`}</option>
-                  </React.Fragment>
-                );
-              })}
-            </select>
+              className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none w-20"
+            />
           </div>
         </div>
 
-        {/* Search CTA */}
-        <div className="flex flex-col justify-end">
+        {/* Search Submit Button */}
+        <div className="flex items-center">
           <button
             type="submit"
-            className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-brand-dark hover:to-brand-orange text-white font-bold text-sm shadow-lg shadow-brand-orange/30 hover:shadow-xl transition-all flex items-center justify-center gap-2 group"
+            className="w-full h-full min-h-[52px] px-6 py-3.5 rounded-2xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-brand-dark hover:to-brand-orange text-white font-extrabold text-sm shadow-xl shadow-brand-orange/30 flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 group"
           >
             <Search className="w-4 h-4 group-hover:scale-110 transition-transform" />
             <span>Search Verified Rides</span>

@@ -5,7 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import SearchWidget from '@/components/marketplace/SearchWidget';
 import VehicleCard from '@/components/marketplace/VehicleCard';
 import FilterSidebar from '@/components/marketplace/FilterSidebar';
-import { Car, Layers, Filter, Sparkles, AlertCircle } from 'lucide-react';
+import { VehicleCardSkeleton } from '@/components/ui/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Car, Layers, Filter, Sparkles, AlertCircle, SlidersHorizontal, X } from 'lucide-react';
 
 function VehiclesSearchContent() {
   const searchParams = useSearchParams();
@@ -30,6 +32,7 @@ function VehiclesSearchContent() {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   useEffect(() => {
     const fetchVehicles = async () => {
@@ -86,8 +89,8 @@ function VehiclesSearchContent() {
 
       {/* Main Grid: Sidebar Filters + Vehicles Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Left Filter Sidebar */}
-        <div className="lg:col-span-1">
+        {/* Left Filter Sidebar for Desktop */}
+        <div className="hidden lg:block lg:col-span-1">
           <FilterSidebar
             filters={filters}
             onChange={setFilters}
@@ -95,20 +98,58 @@ function VehiclesSearchContent() {
           />
         </div>
 
+        {/* Mobile Filter Drawer Overlay */}
+        {mobileFilterOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden flex">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileFilterOpen(false)} />
+            <div className="relative ml-auto w-full max-w-xs bg-white h-full p-5 overflow-y-auto z-10 shadow-2xl flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <h3 className="font-extrabold font-heading text-slate-900 text-base">Filters & Sort</h3>
+                  <button onClick={() => setMobileFilterOpen(false)} className="p-2 text-slate-500 hover:text-slate-800">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <FilterSidebar
+                  filters={filters}
+                  onChange={setFilters}
+                  onReset={handleResetFilters}
+                />
+              </div>
+              <div className="pt-4 border-t border-slate-100">
+                <button
+                  onClick={() => setMobileFilterOpen(false)}
+                  className="w-full py-3 bg-brand-orange text-white font-extrabold text-sm rounded-2xl shadow-md"
+                >
+                  Apply Filters ({vehicles.length} Rides)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Right Vehicles Results */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Header summary */}
-          <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          {/* Header summary & Mobile Filter Toggle */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm gap-4">
             <div>
-              <h1 className="font-extrabold font-heading text-slate-900 text-lg sm:text-xl capitalize">
+              <h1 className="font-black font-heading text-navy-950 text-xl sm:text-2xl capitalize">
                 Verified Rental Rides in {destinationParam}
               </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
                 Showing {vehicles.length} available vehicles from verified local partners
               </p>
             </div>
-            <div className="text-xs font-semibold text-brand-orange bg-brand-light px-3 py-1 rounded-full">
-              100% Deposit Refund Guarantee
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setMobileFilterOpen(true)}
+                className="lg:hidden px-3.5 py-2 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold flex items-center gap-1.5"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" /> Filters
+              </button>
+              <div className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+                100% Deposit Protection
+              </div>
             </div>
           </div>
 
@@ -116,30 +157,16 @@ function VehiclesSearchContent() {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="bg-white rounded-2xl p-4 border border-slate-200 space-y-3 animate-pulse">
-                  <div className="aspect-[16/10] bg-slate-200 rounded-xl"></div>
-                  <div className="h-4 bg-slate-200 rounded w-3/4"></div>
-                  <div className="h-3 bg-slate-100 rounded w-1/2"></div>
-                  <div className="h-8 bg-slate-100 rounded"></div>
-                </div>
+                <VehicleCardSkeleton key={i} />
               ))}
             </div>
           ) : vehicles.length === 0 ? (
-            <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
-                <AlertCircle className="w-8 h-8" />
-              </div>
-              <h3 className="font-bold text-slate-900 text-lg">No vehicles match your current filter</h3>
-              <p className="text-slate-500 text-xs max-w-md mx-auto">
-                Try expanding your price range or selecting all categories to view more verified local partner inventory.
-              </p>
-              <button
-                onClick={handleResetFilters}
-                className="px-5 py-2.5 rounded-xl bg-brand-orange text-white text-xs font-bold shadow-md shadow-brand-orange/20"
-              >
-                Reset All Filters
-              </button>
-            </div>
+            <EmptyState
+              title="No vehicles match your current filter"
+              description="Try expanding your price range or selecting all categories to view more verified local partner inventory."
+              actionText="Reset All Filters"
+              onAction={handleResetFilters}
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {vehicles.map((vehicle) => (
@@ -160,7 +187,7 @@ function VehiclesSearchContent() {
 
 export default function VehiclesPage() {
   return (
-    <Suspense fallback={<div className="p-12 text-center text-slate-500">Loading verified fleet...</div>}>
+    <Suspense fallback={<div className="p-12 text-center text-slate-500 font-bold">Loading verified fleet...</div>}>
       <VehiclesSearchContent />
     </Suspense>
   );

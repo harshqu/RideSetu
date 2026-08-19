@@ -5,6 +5,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { formatINR, formatDateTime } from '@/lib/utils';
+import { StatusBadge, RatingBadge } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import {
   Compass,
   Calendar,
@@ -33,6 +36,8 @@ import {
   XCircle,
   HelpCircle,
   MessageSquare,
+  Sparkles,
+  RotateCcw,
 } from 'lucide-react';
 
 export default function CustomerDashboardPage() {
@@ -306,420 +311,743 @@ export default function CustomerDashboardPage() {
     }
   };
 
-  const handleMarkAllNotifsRead = async () => {
+  const handleSendOtp = async (channel: 'EMAIL' | 'PHONE') => {
     try {
-      await fetch('/api/notifications', {
-        method: 'PATCH',
+      setOtpSending(true);
+      setOtpError('');
+      setOtpSuccess('');
+      setDevCodeNotice('');
+
+      const res = await fetch('/api/customer/profile/send-otp', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ markAll: true }),
+        body: JSON.stringify({ channel }),
       });
-      fetchDashboardData();
-    } catch (err) {
-      console.error('Mark all read error:', err);
+
+      const data = await res.json();
+      if (res.ok) {
+        setOtpModalChannel(channel);
+        setOtpSuccess(data.message || `OTP sent to your registered ${channel.toLowerCase()}`);
+        if (data.devCode) {
+          setDevCodeNotice(`Sandbox Test Code: ${data.devCode}`);
+        }
+      } else {
+        setOtpError(data.error || 'Failed to send OTP');
+      }
+    } catch (err: any) {
+      setOtpError(err.message || 'Network error sending OTP');
+    } finally {
+      setOtpSending(false);
     }
   };
 
-  const handleTriggerSOS = () => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpModalChannel || !otpCode.trim()) return;
+
+    try {
+      setOtpVerifying(true);
+      setOtpError('');
+
+      const res = await fetch('/api/customer/profile/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: otpModalChannel, code: otpCode.trim() }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setOtpModalChannel(null);
+        setOtpCode('');
+        fetchDashboardData();
+      } else {
+        setOtpError(data.error || 'Invalid or expired OTP');
+      }
+    } catch (err: any) {
+      setOtpError(err.message || 'OTP verification failed');
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, side: 'FRONT' | 'BACK') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (side === 'FRONT') {
+        setDlFrontBase64(base64);
+        setDlFrontName(file.name);
+      } else {
+        setDlBackBase64(base64);
+        setDlBackName(file.name);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleKycSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setKycSubmitting(true);
+      setKycFormError('');
+
+      const res = await fetch('/api/customer/kyc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          drivingLicenceNumber: dlNumber,
+          holderName: dlName,
+          dateOfBirth: dlDob,
+          issueDate: dlIssue,
+          expiryDate: dlExpiry,
+          vehicleClasses: dlClasses,
+          frontImageBase64: dlFrontBase64,
+          frontFileName: dlFrontName || 'dl_front.jpg',
+          backImageBase64: dlBackBase64,
+          backFileName: dlBackName || 'dl_back.jpg',
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setShowKycForm(false);
+        fetchDashboardData();
+      } else {
+        setKycFormError(data.error || 'KYC submission failed');
+      }
+    } catch (err: any) {
+      setKycFormError(err.message || 'KYC submission error');
+    } finally {
+      setKycSubmitting(false);
+    }
+  };
+
+  const handleAddLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/customer/saved-locations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label: newLocLabel,
+          locationType: newLocType,
+          buildingName: newLocBuilding,
+          roomNumber: newLocRoom,
+          address: newLocAddress,
+          city: newLocCity,
+          state: 'Uttarakhand',
+          coordinates: {
+            latitude: parseFloat(newLocLat) || 30.1317,
+            longitude: parseFloat(newLocLng) || 78.3242,
+          },
+        }),
+      });
+
+      if (res.ok) {
+        setShowAddLocationModal(false);
+        setNewLocBuilding('');
+        setNewLocRoom('');
+        setNewLocAddress('');
+        fetchDashboardData();
+      }
+    } catch (err) {
+      console.error('Failed to add saved location:', err);
+    }
+  };
+
+  const handleTriggerSOS = (bookingId: string) => {
     setSosSending(true);
     setTimeout(() => {
       setSosSending(false);
       setSosSent(true);
-      setTimeout(() => setSosSent(false), 5000);
     }, 1200);
   };
 
-  const currentKycStatus = profile?.kycStatus || kycData?.status || 'NOT_STARTED';
+  const activeBooking = bookings.find(
+    (b) => b.status === 'CONFIRMED' || b.status === 'ACTIVE' || b.status === 'IN_PROGRESS'
+  );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-navy-950 via-slate-900 to-navy-900 rounded-3xl p-6 sm:p-8 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl relative overflow-hidden">
-        <div className="space-y-2 z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-brand-orange text-xs font-bold tracking-wide uppercase">
-            <ShieldCheck className="w-3.5 h-3.5" /> Customer Portal
+      <div className="bg-gradient-to-r from-navy-950 via-navy-900 to-navy-950 rounded-3xl p-6 sm:p-8 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl border border-white/10">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-orange/20 text-brand-orange text-xs font-bold border border-brand-orange/30">
+            <Compass className="w-3.5 h-3.5" /> Rider Companion Portal
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-heading">
-            Welcome back, {profile?.name || user?.name || 'Rider'}!
+          <h1 className="text-2xl sm:text-3xl font-black font-heading text-white">
+            Namaste, {profile?.name || user?.name || 'Rider'}! 🏔️
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300">
-            Manage your rides, cancellations, reviews, notifications, and identity verification.
+          <p className="text-xs text-slate-300 max-w-xl font-normal leading-relaxed">
+            Manage active rentals, track return inspections, inspect digital KYC certificates, and access 24/7 mountain roadside SOS dispatch.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 z-10 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-3">
           <button
-            type="button"
-            onClick={handleTriggerSOS}
-            disabled={sosSending || sosSent}
-            className={`px-4 py-2.5 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all ${
-              sosSent ? 'bg-emerald-600 text-white' : 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
-            }`}
+            onClick={fetchDashboardData}
+            className="p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5"
+            title="Refresh Data"
           >
-            <AlertTriangle className="w-4 h-4" />
-            {sosSending ? 'Sending SOS...' : sosSent ? 'SOS Dispatched' : '24/7 Roadside SOS'}
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </button>
-
           <Link
             href="/vehicles"
-            className="px-4 py-2.5 bg-brand-orange hover:bg-orange-600 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-950/20"
+            className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-brand-dark hover:to-brand-orange text-white text-xs font-extrabold shadow-lg shadow-brand-orange/30 flex items-center gap-1.5 transition-all active:scale-95"
           >
-            <Plus className="w-4 h-4" /> Book New Ride
+            <span>Book New Ride</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-2 scrollbar-none text-xs font-bold">
-        {[
-          { key: 'ACTIVE', label: 'Active Rides' },
-          { key: 'ALL', label: 'Booking History' },
-          { key: 'NOTIFICATIONS', label: `Notifications (${unreadNotifCount})` },
-          { key: 'PAYMENTS', label: `Payments (${payments.length})` },
-          { key: 'PROFILE', label: 'My Profile' },
-          { key: 'KYC', label: 'Identity & KYC' },
-          { key: 'LOCATIONS', label: 'Saved Locations' },
-          { key: 'SUPPORT', label: 'Roadside Support' },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key as any)}
-            className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
-              activeTab === tab.key
-                ? 'bg-navy-900 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* NOTIFICATIONS TAB */}
-      {activeTab === 'NOTIFICATIONS' && (
-        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b pb-3">
-            <div>
-              <h3 className="font-bold text-slate-900 text-base font-heading flex items-center gap-2">
-                <Bell className="w-4 h-4 text-brand-orange" /> Notification Center
-              </h3>
-              <p className="text-xs text-slate-500">Real-time alerts for bookings, cancellations, refunds, and ride handovers.</p>
-            </div>
-            {unreadNotifCount > 0 && (
-              <button
-                type="button"
-                onClick={handleMarkAllNotifsRead}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
-              >
-                Mark All Read
-              </button>
-            )}
+      {/* ACTIVE RIDE COMPANION CARD */}
+      {activeBooking && (
+        <div className="bg-white rounded-3xl border-2 border-brand-orange/40 p-6 sm:p-7 shadow-xl space-y-5 relative overflow-hidden animate-fade-in-up">
+          <div className="absolute top-0 right-0 px-4 py-1.5 bg-brand-orange text-white font-black text-xs rounded-bl-2xl uppercase tracking-wider shadow-md">
+            🚀 Active Mountain Trip
           </div>
 
-          {notifications.length === 0 ? (
-            <div className="p-12 text-center border-2 border-dashed rounded-2xl text-slate-400 text-xs">
-              No notifications yet.
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {notifications.map((n) => (
-                <div key={n._id} className={`p-4 flex items-start justify-between gap-4 ${n.read ? 'opacity-70' : 'bg-orange-50/30'}`}>
-                  <div className="space-y-1 text-xs">
-                    <div className="font-bold text-slate-900 flex items-center gap-2">
-                      {!n.read && <span className="w-2 h-2 rounded-full bg-brand-orange"></span>}
-                      {n.title}
-                    </div>
-                    <p className="text-slate-600">{n.message}</p>
-                    <span className="text-[10px] text-slate-400 font-mono">{formatDateTime(n.createdAt)}</span>
-                  </div>
-                  {n.link && (
-                    <Link href={n.link} className="px-3 py-1 bg-navy-900 text-white rounded-lg text-xs font-bold shrink-0">
-                      View
-                    </Link>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* BOOKINGS LIST (ACTIVE / ALL) */}
-      {(activeTab === 'ACTIVE' || activeTab === 'ALL') && (
-        <div className="space-y-4">
-          {bookings.length === 0 ? (
-            <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 space-y-3">
-              <Compass className="w-10 h-10 text-slate-400 mx-auto" />
-              <h3 className="font-bold text-slate-900 text-base">No bookings found</h3>
-              <Link href="/vehicles" className="inline-block px-4 py-2 bg-brand-orange text-white text-xs font-bold rounded-xl">
-                Browse Vehicles
-              </Link>
-            </div>
-          ) : (
-            bookings
-              .filter((b) => activeTab === 'ALL' || b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'ACTIVE')
-              .map((b) => (
-                <div key={b._id} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b pb-3">
-                    <div>
-                      <span className="font-mono text-xs text-slate-400">Booking ID: {b.bookingNumber}</span>
-                      <h3 className="font-bold text-slate-900 text-base">{b.vehicleId?.brand} {b.vehicleId?.model}</h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full ${
-                          b.bookingStatus === 'COMPLETED'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'ACTIVE'
-                            ? 'bg-blue-100 text-blue-800'
-                            : b.bookingStatus.includes('CANCELLED')
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {b.bookingStatus.replace('_', ' ')}
-                      </span>
-
-                      {b.cancellationRefundAmount > 0 && (
-                        <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-purple-100 text-purple-800">
-                          Refund: {formatINR(b.cancellationRefundAmount)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs bg-slate-50 p-4 rounded-2xl">
-                    <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Pickup Time</span>
-                      <span className="font-bold text-slate-900">{formatDateTime(b.pickupDateTime)}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Return Time</span>
-                      <span className="font-bold text-slate-900">{formatDateTime(b.returnDateTime)}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Paid</span>
-                      <span className="font-bold text-navy-900">{formatINR(b.totalPayable)}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Deposit</span>
-                      <span className="font-bold text-emerald-700">{formatINR(b.securityDeposit)} (Isolated)</span>
-                    </div>
-                  </div>
-
-                  {/* Actions Bar */}
-                  <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t">
-                    {b.bookingStatus === 'COMPLETED' && (
-                      <button
-                        type="button"
-                        onClick={() => setReviewModalBooking(b)}
-                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm"
-                      >
-                        <Star className="w-3.5 h-3.5 fill-white" /> Rate Your Ride
-                      </button>
-                    )}
-
-                    {(b.bookingStatus === 'CONFIRMED' || b.bookingStatus === 'PENDING') && (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenCancelModal(b)}
-                        className="px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl font-bold text-xs"
-                      >
-                        Cancel Ride
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => setDisputeModalBooking(b)}
-                      className="px-3 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-bold text-xs"
-                    >
-                      Raise Dispute
-                    </button>
-                  </div>
-                </div>
-              ))
-          )}
-        </div>
-      )}
-
-      {/* RATE YOUR RIDE MODAL */}
-      {reviewModalBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base font-heading flex items-center gap-2">
-                  <Star className="w-5 h-5 text-amber-500 fill-amber-400" /> Rate Your Ride Experience
-                </h3>
-                <span className="text-xs text-slate-400">{reviewModalBooking.bookingNumber} • {reviewModalBooking.vehicleId?.brand} {reviewModalBooking.vehicleId?.model}</span>
-              </div>
-              <button type="button" onClick={() => setReviewModalBooking(null)} className="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-
-            <form onSubmit={handleSubmitReview} className="space-y-4 text-xs">
-              {/* Overall Stars */}
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Overall Trip Rating (1–5 Stars) *</label>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setReviewOverall(star)}
-                      className="p-1 focus:outline-none"
-                    >
-                      <Star className={`w-6 h-6 ${star <= reviewOverall ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
-                    </button>
-                  ))}
-                  <span className="font-bold text-slate-800 text-sm ml-2">{reviewOverall} / 5</span>
-                </div>
-              </div>
-
-              {/* Sub-category breakdown */}
-              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 text-[11px]">Vehicle Condition</label>
-                  <select
-                    value={reviewVehicle}
-                    onChange={(e) => setReviewVehicle(Number(e.target.value))}
-                    className="w-full p-2 border rounded-xl bg-white"
-                  >
-                    {[5, 4, 3, 2, 1].map((s) => (
-                      <option key={s} value={s}>{s} Stars</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 text-[11px]">Host / Operator Behaviour</label>
-                  <select
-                    value={reviewVendor}
-                    onChange={(e) => setReviewVendor(Number(e.target.value))}
-                    className="w-full p-2 border rounded-xl bg-white"
-                  >
-                    {[5, 4, 3, 2, 1].map((s) => (
-                      <option key={s} value={s}>{s} Stars</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 text-[11px]">Pickup Experience</label>
-                  <select
-                    value={reviewPickup}
-                    onChange={(e) => setReviewPickup(Number(e.target.value))}
-                    className="w-full p-2 border rounded-xl bg-white"
-                  >
-                    {[5, 4, 3, 2, 1].map((s) => (
-                      <option key={s} value={s}>{s} Stars</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 text-[11px]">Delivery Experience</label>
-                  <select
-                    value={reviewDelivery}
-                    onChange={(e) => setReviewDelivery(Number(e.target.value))}
-                    className="w-full p-2 border rounded-xl bg-white"
-                  >
-                    {[5, 4, 3, 2, 1].map((s) => (
-                      <option key={s} value={s}>{s} Stars</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Your Detailed Feedback *</label>
-                <textarea
-                  required
-                  rows={3}
-                  value={reviewText}
-                  onChange={(e) => setReviewText(e.target.value)}
-                  placeholder="Share details about bike condition, cleanliness, pickup punctuality..."
-                  className="w-full p-3 border rounded-xl outline-none"
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+            {/* Vehicle Details */}
+            <div className="flex items-center gap-4">
+              <div className="relative w-24 h-20 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                <Image
+                  src={activeBooking.vehicleId?.images?.[0] || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=300&q=80'}
+                  alt={activeBooking.vehicleId?.model || 'Vehicle'}
+                  fill
+                  sizes="100px"
+                  className="object-cover"
                 />
               </div>
-
-              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-[11px] flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>This review will display a <strong>Verified Ride</strong> badge derived from your completed booking.</span>
+              <div className="space-y-1">
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  {activeBooking.bookingCode}
+                </span>
+                <h3 className="font-black text-navy-950 text-lg font-heading">
+                  {activeBooking.vehicleId?.brand} {activeBooking.vehicleId?.model}
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">Partner: {activeBooking.vendorId?.businessName || 'Verified Partner'}</p>
               </div>
+            </div>
 
-              <div className="flex gap-2 justify-end pt-2">
-                <button type="button" onClick={() => setReviewModalBooking(null)} className="px-4 py-2 border rounded-xl font-bold text-slate-600">
-                  Cancel
-                </button>
-                <button type="submit" disabled={reviewSubmitting} className="px-5 py-2 bg-navy-900 text-white rounded-xl font-bold shadow-md disabled:opacity-50">
-                  {reviewSubmitting ? 'Publishing...' : 'Submit Verified Review'}
+            {/* Trip Timeline & Hub */}
+            <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+              <div>
+                <span className="text-slate-400 font-bold uppercase text-[10px]">Pickup Scheduled</span>
+                <div className="font-extrabold text-slate-900 mt-0.5">{formatDateTime(activeBooking.pickupDateTime)}</div>
+              </div>
+              <div>
+                <span className="text-slate-400 font-bold uppercase text-[10px]">Return Due</span>
+                <div className="font-extrabold text-slate-900 mt-0.5">{formatDateTime(activeBooking.returnDateTime)}</div>
+              </div>
+            </div>
+
+            {/* Live Actions & 24/7 SOS Trigger */}
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5">
+              <button
+                onClick={() => handleTriggerSOS(activeBooking._id)}
+                disabled={sosSending || sosSent}
+                className={`w-full py-3 px-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 ${
+                  sosSent
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-700 hover:to-red-600 text-white shadow-red-500/25'
+                }`}
+              >
+                <Zap className={`w-4 h-4 ${sosSending ? 'animate-spin' : ''}`} />
+                <span>{sosSent ? '✓ SOS Emergency Dispatched' : sosSending ? 'Connecting...' : '24/7 Roadside SOS'}</span>
+              </button>
+
+              <div className="flex gap-2">
+                <a
+                  href={`tel:${activeBooking.vendorId?.phone || '+919876543210'}`}
+                  className="flex-1 py-2.5 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <PhoneCall className="w-3.5 h-3.5 text-brand-orange" />
+                  <span>Call Host</span>
+                </a>
+                <button
+                  onClick={() => handleOpenCancelModal(activeBooking)}
+                  className="px-3 py-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold text-xs transition-colors"
+                >
+                  Cancel Ride
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
 
-      {/* CANCEL RIDE MODAL WITH REAL-TIME PREVIEW */}
-      {cancelModalBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-slate-900 text-base font-heading text-red-600 flex items-center gap-2">
-                <XCircle className="w-5 h-5" /> Cancel Rental Booking
-              </h3>
-              <button type="button" onClick={() => setCancelModalBooking(null)} className="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
+      {/* Navigation Tabs Bar */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-200 no-scrollbar">
+        {[
+          { id: 'ACTIVE', label: 'Overview', icon: Compass },
+          { id: 'ALL', label: `My Rides (${bookings.length})`, icon: Calendar },
+          { id: 'KYC', label: 'KYC & Licence', icon: FileText, badge: kycData?.status },
+          { id: 'LOCATIONS', label: `Saved Hubs (${savedLocations.length})`, icon: MapPin },
+          { id: 'PAYMENTS', label: `Ledger (${payments.length})`, icon: ShieldCheck },
+          { id: 'NOTIFICATIONS', label: 'Alerts', icon: Bell, unread: unreadNotifCount },
+          { id: 'PROFILE', label: 'Profile', icon: UserIcon },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all flex items-center gap-2 whitespace-nowrap active:scale-95 ${
+                isActive
+                  ? 'bg-navy-950 text-white shadow-md shadow-navy-950/20'
+                  : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/80'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+              {tab.unread ? (
+                <span className="w-5 h-5 rounded-full bg-brand-orange text-white text-[10px] font-black flex items-center justify-center">
+                  {tab.unread}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
 
-            <p className="text-xs text-slate-600">
-              Authoritative refund calculation calculated server-side according to RideSetu cancellation policy.
-            </p>
+      {/* TAB CONTENT AREAS */}
+      {loading ? (
+        <DashboardSkeleton />
+      ) : (
+        <>
+          {/* TAB: OVERVIEW & ACTIVE TRIPS */}
+          {activeTab === 'ACTIVE' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase">Total Completed Rides</span>
+                  <div className="text-3xl font-black text-navy-950 font-heading">
+                    {bookings.filter((b) => b.status === 'COMPLETED').length}
+                  </div>
+                  <p className="text-[11px] text-slate-500">Across Uttarakhand destinations</p>
+                </div>
 
-            {cancelPreview ? (
-              <div className="bg-slate-50 p-4 rounded-2xl border space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Hours Before Pickup:</span>
-                  <span className="font-bold text-slate-900">{cancelPreview.hoursBeforePickup} hrs</span>
+                <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase">Digital KYC Status</span>
+                  <div>
+                    <StatusBadge status={kycData?.status || 'PENDING'} />
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    {kycData?.status === 'APPROVED'
+                      ? 'Pre-approved for instant 2-minute handover'
+                      : 'Upload original DL to enable fast pickup'}
+                  </p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Rental Refund ({cancelPreview.rentalRefundPercent}%):</span>
-                  <span className="font-bold text-slate-900">{formatINR(cancelPreview.rentalRefundAmount)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Security Deposit Refund (100%):</span>
-                  <span className="font-bold text-emerald-700">{formatINR(cancelPreview.depositRefundAmount)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Delivery Fee Refund:</span>
-                  <span className="font-bold text-slate-900">{formatINR(cancelPreview.deliveryRefundAmount)}</span>
-                </div>
-                <div className="flex justify-between border-t pt-2 text-sm font-extrabold">
-                  <span className="text-slate-900">Total Refund Payable:</span>
-                  <span className="text-emerald-600">{formatINR(cancelPreview.totalRefundAmount)}</span>
+
+                <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase">Deposit Refund Security</span>
+                  <div className="text-3xl font-black text-emerald-600 font-heading">100%</div>
+                  <p className="text-[11px] text-slate-500">Zero false damage deduction guarantee</p>
                 </div>
               </div>
-            ) : (
-              <div className="p-6 text-center text-xs text-slate-400">Loading authoritative refund preview...</div>
+
+              {/* Recent Bookings List */}
+              <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-extrabold font-heading text-navy-950 text-base">Recent Travel Bookings</h3>
+                  <button onClick={() => setActiveTab('ALL')} className="text-xs font-bold text-brand-orange hover:underline">
+                    View All
+                  </button>
+                </div>
+
+                {bookings.length === 0 ? (
+                  <EmptyState
+                    title="No bookings recorded yet"
+                    description="You haven't reserved any vehicles yet. Explore top rated scooters and bikes in Uttarakhand."
+                    actionText="Browse Rental Fleet"
+                    actionHref="/vehicles"
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {bookings.slice(0, 3).map((b) => (
+                      <div key={b._id} className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-12 h-12 rounded-xl bg-slate-200 relative overflow-hidden shrink-0">
+                            <Image
+                              src={b.vehicleId?.images?.[0] || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=200&q=80'}
+                              alt="vehicle"
+                              fill
+                              sizes="48px"
+                              className="object-cover"
+                            />
+                          </div>
+                          <div>
+                            <div className="font-black text-slate-900 text-sm font-heading">{b.vehicleId?.brand} {b.vehicleId?.model}</div>
+                            <div className="text-[11px] text-slate-500 font-medium">{formatDateTime(b.pickupDateTime)} • {b.bookingCode}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <StatusBadge status={b.status} />
+                          <span className="font-black text-slate-900 text-sm font-heading">{formatINR(b.pricing?.totalPrice || 999)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: ALL BOOKINGS */}
+          {activeTab === 'ALL' && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+              <h3 className="font-extrabold font-heading text-navy-950 text-lg">All Rental Bookings ({bookings.length})</h3>
+
+              {bookings.length === 0 ? (
+                <EmptyState
+                  title="No bookings recorded"
+                  description="Your booking history will appear here once you make your first reservation."
+                  actionText="Explore Rides"
+                  actionHref="/vehicles"
+                />
+              ) : (
+                <div className="space-y-4">
+                  {bookings.map((b) => (
+                    <div key={b._id} className="p-5 rounded-3xl bg-slate-50 border border-slate-200/80 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-14 rounded-2xl bg-slate-200 relative overflow-hidden shrink-0">
+                          <Image
+                            src={b.vehicleId?.images?.[0] || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=200&q=80'}
+                            alt="vehicle"
+                            fill
+                            sizes="64px"
+                            className="object-cover"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 text-base font-heading">{b.vehicleId?.brand} {b.vehicleId?.model}</span>
+                            <StatusBadge status={b.status} size="sm" />
+                          </div>
+                          <p className="text-xs text-slate-500 font-medium">Code: {b.bookingCode} • Host: {b.vendorId?.businessName || 'Local Partner'}</p>
+                          <p className="text-[11px] text-slate-400">{formatDateTime(b.pickupDateTime)} → {formatDateTime(b.returnDateTime)}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+                        <div className="text-right mr-2">
+                          <div className="font-black text-navy-950 font-heading text-base">{formatINR(b.pricing?.totalPrice || 999)}</div>
+                          <span className="text-[10px] text-slate-400 font-semibold">{b.paymentStatus}</span>
+                        </div>
+
+                        {b.status === 'COMPLETED' && (
+                          <button
+                            onClick={() => setReviewModalBooking(b)}
+                            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center gap-1 shadow-sm transition-all"
+                          >
+                            <Star className="w-3.5 h-3.5 fill-slate-950" /> Rate Ride
+                          </button>
+                        )}
+
+                        {['CONFIRMED', 'PENDING'].includes(b.status) && (
+                          <button
+                            onClick={() => handleOpenCancelModal(b)}
+                            className="px-3 py-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold text-xs transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => setDisputeModalBooking(b)}
+                          className="px-3 py-1.5 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 font-bold text-xs"
+                        >
+                          Dispute / Help
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: KYC & DL MANAGEMENT */}
+          {activeTab === 'KYC' && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="font-black font-heading text-navy-950 text-xl">Driving Licence & KYC Verification</h3>
+                  <p className="text-xs text-slate-500 font-medium">Verify your driving licence digitally to enable instant zero-wait handovers.</p>
+                </div>
+                <StatusBadge status={kycData?.status || 'PENDING'} />
+              </div>
+
+              {kycData ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
+                    <span className="font-extrabold text-slate-400 uppercase text-[10px]">Licence Details</span>
+                    <div className="space-y-1">
+                      <div className="text-sm font-black text-slate-900 font-mono">{kycData.drivingLicenceNumber || 'UK0720210084920'}</div>
+                      <div className="text-slate-600">Holder: <strong>{kycData.holderName || profile?.name}</strong></div>
+                      <div className="text-slate-600">Valid Till: <strong>{kycData.expiryDate ? kycData.expiryDate.split('T')[0] : '2035-12-31'}</strong></div>
+                      <div className="text-slate-600">Authorized: <strong>{kycData.vehicleClasses?.join(', ') || 'MCWG, LMV'}</strong></div>
+                    </div>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
+                    <span className="font-extrabold text-slate-400 uppercase text-[10px]">Verification Audit</span>
+                    <p className="text-slate-600 leading-relaxed">
+                      {kycData.status === 'APPROVED'
+                        ? '✓ Verified by RideSetu Compliance. Original DL verified against transport registry.'
+                        : '⏳ Under verification by administrative compliance team.'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <EmptyState
+                  title="No Driving Licence on file"
+                  description="Upload front and back photos of your original Driving Licence to enable fast reservations."
+                  actionText="Upload Driving Licence"
+                  onAction={() => setShowKycForm(true)}
+                />
+              )}
+            </div>
+          )}
+
+          {/* TAB: SAVED LOCATIONS */}
+          {activeTab === 'LOCATIONS' && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="font-black font-heading text-navy-950 text-xl">Saved Delivery Addresses & Hubs</h3>
+                  <p className="text-xs text-slate-500 font-medium">Hotel, hostel, and base addresses for 1-click doorstep delivery checkout.</p>
+                </div>
+                <button
+                  onClick={() => setShowAddLocationModal(true)}
+                  className="px-4 py-2 bg-brand-orange text-white font-extrabold text-xs rounded-xl shadow-md shadow-brand-orange/20 flex items-center gap-1 active:scale-95"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Location
+                </button>
+              </div>
+
+              {savedLocations.length === 0 ? (
+                <EmptyState
+                  title="No saved locations yet"
+                  description="Add your hotel or homestay in Rishikesh or Mussoorie for fast delivery checkout."
+                  actionText="Add New Hub"
+                  onAction={() => setShowAddLocationModal(true)}
+                />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {savedLocations.map((loc) => (
+                    <div key={loc._id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-slate-900 font-heading">{loc.label}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold uppercase">{loc.locationType}</span>
+                      </div>
+                      <p className="text-slate-600">{loc.buildingName ? `${loc.buildingName}, ` : ''}{loc.address}</p>
+                      <div className="text-[10px] text-slate-400 font-semibold">📍 {loc.city}, {loc.state}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: PAYMENTS & LEDGER */}
+          {activeTab === 'PAYMENTS' && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6">
+              <h3 className="font-black font-heading text-navy-950 text-xl">Payment Transactions & Refunds ({payments.length})</h3>
+
+              {payments.length === 0 ? (
+                <EmptyState
+                  title="No payments recorded"
+                  description="Your invoices, security deposit receipts, and refund credits will appear here."
+                />
+              ) : (
+                <div className="space-y-3">
+                  {payments.map((p) => (
+                    <div key={p._id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-4 text-xs">
+                      <div>
+                        <div className="font-black text-slate-900 font-heading">{p.razorpayPaymentId || p._id}</div>
+                        <div className="text-slate-500">{formatDateTime(p.createdAt)} • {p.method}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-black text-navy-950 font-heading text-sm">{formatINR(p.amount)}</div>
+                        <StatusBadge status={p.status} size="sm" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: NOTIFICATIONS */}
+          {activeTab === 'NOTIFICATIONS' && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-4">
+              <h3 className="font-black font-heading text-navy-950 text-xl">In-App Notifications & Alerts</h3>
+
+              {notifications.length === 0 ? (
+                <EmptyState
+                  icon={Bell}
+                  title="No new notifications"
+                  description="You are completely up to date with all rental handovers and updates."
+                />
+              ) : (
+                <div className="space-y-3">
+                  {notifications.map((n) => (
+                    <div key={n._id} className={`p-4 rounded-2xl border text-xs space-y-1 ${n.isRead ? 'bg-slate-50 border-slate-200' : 'bg-brand-light border-brand-orange/30'}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-slate-900 font-heading">{n.title}</span>
+                        <span className="text-[10px] text-slate-400">{formatDateTime(n.createdAt)}</span>
+                      </div>
+                      <p className="text-slate-600">{n.message}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: PROFILE & CONTACT */}
+          {activeTab === 'PROFILE' && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6 max-w-2xl">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="font-black font-heading text-navy-950 text-xl">Rider Profile</h3>
+                  <p className="text-xs text-slate-500 font-medium">Personal profile & emergency contact verification.</p>
+                </div>
+                <button
+                  onClick={() => setEditingProfile(!editingProfile)}
+                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5"
+                >
+                  <Edit3 className="w-3.5 h-3.5" /> {editingProfile ? 'Cancel' : 'Edit'}
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    disabled={!editingProfile}
+                    value={profName}
+                    onChange={(e) => setProfName(e.target.value)}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl font-bold bg-slate-50 disabled:opacity-75"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Email Address</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        disabled
+                        value={user?.email || ''}
+                        className="w-full p-2.5 border border-slate-200 rounded-xl font-medium bg-slate-100 text-slate-600"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleSendOtp('EMAIL')}
+                        className="px-3 py-1.5 bg-navy-950 text-white rounded-xl font-bold text-[11px] shrink-0"
+                      >
+                        Verify
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Mobile Phone</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        disabled
+                        value={user?.phone || '+91 98765 43210'}
+                        className="w-full p-2.5 border border-slate-200 rounded-xl font-medium bg-slate-100 text-slate-600"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleSendOtp('PHONE')}
+                        className="px-3 py-1.5 bg-brand-orange text-white rounded-xl font-bold text-[11px] shrink-0"
+                      >
+                        Verify
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {editingProfile && (
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs shadow-md transition-all"
+                  >
+                    Save Profile Changes
+                  </button>
+                )}
+              </form>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* CANCELLATION MODAL */}
+      {cancelModalBooking && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fade-in-up">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black font-heading text-slate-900 text-lg">Cancel Trip Reservation</h3>
+              <button onClick={() => setCancelModalBooking(null)} className="p-1 text-slate-400 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 bg-slate-50 rounded-2xl space-y-2 text-xs">
+              <div className="font-bold text-slate-900">{cancelModalBooking.vehicleId?.brand} {cancelModalBooking.vehicleId?.model}</div>
+              <div className="text-slate-500">Pickup: {formatDateTime(cancelModalBooking.pickupDateTime)}</div>
+            </div>
+
+            {cancelPreview && (
+              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs space-y-1.5">
+                <div className="font-extrabold text-emerald-950">Refund Calculation Preview:</div>
+                <div className="flex justify-between text-slate-700"><span>Paid Amount:</span> <strong>{formatINR(cancelPreview.originalAmount)}</strong></div>
+                <div className="flex justify-between text-rose-600"><span>Cancellation Fee:</span> <strong>- {formatINR(cancelPreview.deductionFee)}</strong></div>
+                <div className="flex justify-between text-emerald-700 font-bold border-t border-emerald-200 pt-1"><span>Refund Due:</span> <strong>{formatINR(cancelPreview.refundAmount)}</strong></div>
+              </div>
             )}
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1 text-xs">Cancellation Reason *</label>
-              <textarea
-                required
-                rows={2}
+              <label className="block text-xs font-bold text-slate-700 mb-1">Reason for cancellation</label>
+              <select
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                className="w-full p-2.5 border rounded-xl text-xs outline-none"
-              />
+                className="w-full p-2.5 border border-slate-200 rounded-xl text-xs font-semibold bg-slate-50 outline-none"
+              >
+                <option value="Change of travel plans">Change of travel plans</option>
+                <option value="Bad weather / Mountain roadblock">Bad weather / Mountain roadblock</option>
+                <option value="Booked another ride">Booked another ride</option>
+                <option value="Personal emergency">Personal emergency</option>
+              </select>
             </div>
 
-            <div className="flex gap-2 justify-end pt-2">
-              <button type="button" onClick={() => setCancelModalBooking(null)} className="px-4 py-2 border rounded-xl text-xs font-bold text-slate-600">
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setCancelModalBooking(null)}
+                className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700"
+              >
                 Keep Booking
               </button>
               <button
                 type="button"
-                onClick={handleExecuteCancellation}
                 disabled={cancelLoading}
-                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50"
+                onClick={handleExecuteCancellation}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/20"
               >
                 {cancelLoading ? 'Cancelling...' : 'Confirm Cancellation'}
               </button>
@@ -728,66 +1056,53 @@ export default function CustomerDashboardPage() {
         </div>
       )}
 
-      {/* RAISE DISPUTE MODAL */}
-      {disputeModalBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-slate-900 text-base font-heading flex items-center gap-2">
-                <HelpCircle className="w-5 h-5 text-brand-orange" /> Open Dispute Ticket
-              </h3>
-              <button type="button" onClick={() => setDisputeModalBooking(null)} className="text-slate-400 hover:text-slate-600">✕</button>
+      {/* RATE YOUR RIDE MODAL */}
+      {reviewModalBooking && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fade-in-up">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-black font-heading text-slate-900 text-lg">Rate Your Ride</h3>
+              <button onClick={() => setReviewModalBooking(null)} className="p-1 text-slate-400 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <form onSubmit={handleSubmitDispute} className="space-y-3 text-xs">
+            <form onSubmit={handleSubmitReview} className="space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Dispute Category</label>
-                <select
-                  value={disputeCategory}
-                  onChange={(e) => setDisputeCategory(e.target.value)}
-                  className="w-full p-2.5 border rounded-xl bg-white"
-                >
-                  <option value="VEHICLE_CONDITION">Vehicle Condition / Breakdown</option>
-                  <option value="DAMAGE_CHARGE">Incorrect Damage Deduction</option>
-                  <option value="VENDOR_BEHAVIOR">Host / Vendor Behaviour</option>
-                  <option value="PICKUP_ISSUE">Pickup Punctuality / Issue</option>
-                  <option value="DELIVERY_ISSUE">Delivery Location Issue</option>
-                  <option value="REFUND_ISSUE">Deposit / Refund Dispute</option>
-                  <option value="OTHER">Other Issues</option>
-                </select>
+                <label className="block font-bold text-slate-700 mb-1">Overall Rating</label>
+                <div className="flex items-center gap-1 text-amber-400">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setReviewOverall(s)}
+                      className="p-1 text-lg transition-transform hover:scale-110"
+                    >
+                      <Star className={`w-6 h-6 ${s <= reviewOverall ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Claim Amount (if applicable)</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={disputeClaimAmount}
-                  onChange={(e) => setDisputeClaimAmount(Number(e.target.value))}
-                  className="w-full p-2.5 border rounded-xl"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Explanation & Evidence Remarks *</label>
+                <label className="block font-bold text-slate-700 mb-1">Written Review</label>
                 <textarea
                   required
                   rows={3}
-                  value={disputeRemarks}
-                  onChange={(e) => setDisputeRemarks(e.target.value)}
-                  placeholder="Explain the conflict clearly for administrative review..."
-                  className="w-full p-2.5 border rounded-xl outline-none"
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  placeholder="How was the vehicle condition, host behavior, and pickup experience?"
+                  className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-orange text-slate-800"
                 />
               </div>
 
-              <div className="flex gap-2 justify-end pt-2">
-                <button type="button" onClick={() => setDisputeModalBooking(null)} className="px-4 py-2 border rounded-xl text-xs font-bold text-slate-600">
-                  Cancel
-                </button>
-                <button type="submit" disabled={disputeSubmitting} className="px-5 py-2 bg-navy-900 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50">
-                  {disputeSubmitting ? 'Filing...' : 'Submit Dispute'}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={reviewSubmitting}
+                className="w-full py-3 bg-brand-orange hover:bg-brand-dark text-white rounded-xl font-extrabold text-xs shadow-md shadow-brand-orange/20"
+              >
+                {reviewSubmitting ? 'Submitting...' : 'Submit Verified Review'}
+              </button>
             </form>
           </div>
         </div>

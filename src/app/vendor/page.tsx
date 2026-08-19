@@ -6,6 +6,9 @@ import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import DigitalInspectionModal from '@/components/handover/DigitalInspectionModal';
 import { formatINR, formatDateTime } from '@/lib/utils';
+import { StatusBadge, RatingBadge } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { DashboardSkeleton, TableRowSkeleton } from '@/components/ui/Skeleton';
 import {
   Store,
   Car,
@@ -32,6 +35,8 @@ import {
   Bell,
   MessageSquare,
   ShieldAlert,
+  Edit3,
+  X,
 } from 'lucide-react';
 
 export default function VendorDashboardPage() {
@@ -248,63 +253,20 @@ export default function VendorDashboardPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setProfileMsg({ type: 'success', text: 'Onboarding profile saved! Status updated to Under Review.' });
+        setProfileMsg({ type: 'success', text: 'Business profile updated successfully!' });
         loadVendorData();
       } else {
-        setProfileMsg({ type: 'error', text: data.error || 'Failed to save profile' });
+        setProfileMsg({ type: 'error', text: data.error || 'Failed to update profile.' });
       }
-    } catch (err) {
-      setProfileMsg({ type: 'error', text: 'Failed to update profile' });
+    } catch (err: any) {
+      setProfileMsg({ type: 'error', text: err.message || 'Error updating profile.' });
     } finally {
       setSavingProfile(false);
     }
   };
 
-  const handleUploadDoc = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadingDoc(true);
-      setDocMsg(null);
-
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64Data = (reader.result as string).split(',')[1];
-        const res = await fetch('/api/vendor/documents', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            docType,
-            fileName: file.name,
-            mimeType: file.type,
-            fileSize: file.size,
-            fileBase64: base64Data,
-          }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setDocMsg({ type: 'success', text: `${docType.replace('_', ' ')} uploaded & encrypted securely.` });
-          loadVendorData();
-        } else {
-          setDocMsg({ type: 'error', text: data.error || 'Upload failed' });
-        }
-        setUploadingDoc(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (err) {
-      setDocMsg({ type: 'error', text: 'Document upload failed' });
-      setUploadingDoc(false);
-    }
-  };
-
-  const handleAddVehicle = async (e: React.FormEvent) => {
+  const handleSaveVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (vendorProfile?.verificationStatus !== 'VERIFIED') {
-      alert('Your vendor agency must be VERIFIED by RideSetu Admin before listing fleet vehicles.');
-      return;
-    }
-
     try {
       setSavingVehicle(true);
       const res = await fetch('/api/vendor/vehicles', {
@@ -312,41 +274,42 @@ export default function VendorDashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(vehicleForm),
       });
-      const data = await res.json();
       if (res.ok) {
         setShowAddVehicleModal(false);
-        alert('Vehicle created successfully! It is now UNDER_REVIEW by RideSetu Admin.');
         loadVendorData();
       } else {
+        const data = await res.json();
         alert(data.error || 'Failed to add vehicle');
       }
-    } catch (err) {
-      console.error('Add vehicle error:', err);
+    } catch (err: any) {
+      alert(err.message || 'Error adding vehicle');
     } finally {
       setSavingVehicle(false);
     }
   };
 
-  const handleReplyReview = async (e: React.FormEvent) => {
+  const handleReplyToReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyModalReview || !replyText.trim()) return;
+
     try {
       setReplySubmitting(true);
       const res = await fetch(`/api/reviews/${replyModalReview._id}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ replyText }),
+        body: JSON.stringify({ replyText: replyText.trim() }),
       });
-      const data = await res.json();
+
       if (res.ok) {
         setReplyModalReview(null);
         setReplyText('');
         loadVendorData();
       } else {
-        alert(data.error || 'Failed to publish reply.');
+        const data = await res.json();
+        alert(data.error || 'Failed to submit response');
       }
-    } catch (err) {
-      console.error('Review reply error:', err);
+    } catch (err: any) {
+      alert(err.message || 'Error submitting response');
     } finally {
       setReplySubmitting(false);
     }
@@ -357,495 +320,581 @@ export default function VendorDashboardPage() {
     try {
       setSavingPayout(true);
       setPayoutMessage(null);
+
+      const payload: any = { method: payoutFormMethod };
+      if (payoutFormMethod === 'BANK_ACCOUNT') {
+        if (accountNumber !== confirmAccountNumber) {
+          setPayoutMessage({ type: 'error', text: 'Account numbers do not match.' });
+          setSavingPayout(false);
+          return;
+        }
+        payload.beneficiaryName = beneficiaryName;
+        payload.bankName = bankName;
+        payload.accountNumber = accountNumber;
+        payload.ifscCode = ifscCode;
+        payload.accountType = accountType;
+      } else {
+        payload.upiId = upiId;
+        payload.beneficiaryName = beneficiaryName;
+      }
+
       const res = await fetch('/api/vendor/payout-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method: payoutFormMethod,
-          beneficiaryName,
-          bankName,
-          accountNumber,
-          ifscCode,
-          accountType,
-          upiId,
-        }),
+        body: JSON.stringify(payload),
       });
+
       const data = await res.json();
       if (res.ok) {
-        setPayoutMessage({ type: 'success', text: 'Payout profile verified & encrypted successfully!' });
+        setPayoutMessage({ type: 'success', text: 'Payout details encrypted and saved securely!' });
         loadVendorData();
       } else {
-        setPayoutMessage({ type: 'error', text: data.error || 'Failed to save payout profile' });
+        setPayoutMessage({ type: 'error', text: data.error || 'Failed to save payout details.' });
       }
-    } catch (err) {
-      setPayoutMessage({ type: 'error', text: 'Payout profile update error' });
+    } catch (err: any) {
+      setPayoutMessage({ type: 'error', text: err.message || 'Error saving payout details.' });
     } finally {
       setSavingPayout(false);
     }
   };
 
-  const verificationStatus = vendorProfile?.verificationStatus || 'PENDING';
-  const reliabilityScore = vendorProfile?.reliabilityScore ?? 98;
-  const cancellationCount = vendorProfile?.cancellationCount ?? 0;
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-navy-950 via-slate-900 to-navy-900 rounded-3xl p-6 sm:p-8 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl relative overflow-hidden">
-        <div className="space-y-2 z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-brand-orange text-xs font-bold tracking-wide uppercase">
-            <Store className="w-3.5 h-3.5" /> Fleet Operator Portal
+      <div className="bg-gradient-to-r from-navy-950 via-slate-900 to-navy-950 rounded-3xl p-6 sm:p-8 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl border border-white/10">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold border border-amber-500/30">
+            <Store className="w-3.5 h-3.5" /> Mobility Partner Operations Center
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-heading">
-            {businessName || 'Operator Control Hub'}
+          <h1 className="text-2xl sm:text-3xl font-black font-heading text-white">
+            {vendorProfile?.businessName || user?.vendor?.businessName || 'Partner Fleet Hub'}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300">
-            Manage your fleet, verified customer reviews, rental handovers, calendar blocks, and settlements.
+          <p className="text-xs text-slate-300 max-w-xl font-normal leading-relaxed">
+            Manage your verified rental inventory, inspect digital handovers, process return audits, and track net payout settlements.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 z-10 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-3">
           <button
-            type="button"
+            onClick={loadVendorData}
+            className="p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5"
+            title="Refresh Fleet Data"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+          <button
             onClick={() => setShowAddVehicleModal(true)}
-            className="px-4 py-2.5 bg-brand-orange hover:bg-orange-600 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-950/20"
+            className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-brand-dark hover:to-brand-orange text-white text-xs font-black shadow-lg shadow-brand-orange/30 flex items-center gap-1.5 transition-all active:scale-95"
           >
-            <Plus className="w-4 h-4" /> Add Fleet Vehicle
+            <Plus className="w-4 h-4" />
+            <span>Add Vehicle</span>
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-2 scrollbar-none text-xs font-bold">
+      {/* Navigation Tabs Bar */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-200 no-scrollbar">
         {[
-          { key: 'OVERVIEW', label: 'Overview & Metrics' },
-          { key: 'FLEET', label: `Fleet Inventory (${vehicles.length})` },
-          { key: 'BOOKINGS', label: `Bookings (${bookings.length})` },
-          { key: 'REVIEWS', label: `Reviews & Ratings (${reviews.length})` },
-          { key: 'NOTIFICATIONS', label: `Notifications (${unreadNotifCount})` },
-          { key: 'ONBOARDING', label: 'Agency Profile' },
-          { key: 'DOCUMENTS', label: `Compliance Docs (${vendorDocs.length})` },
-          { key: 'PAYOUTS', label: 'Payout Settings' },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key as any)}
-            className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
-              activeTab === tab.key
-                ? 'bg-navy-900 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+          { id: 'OVERVIEW', label: 'Overview', icon: TrendingUp },
+          { id: 'FLEET', label: `Fleet Inventory (${vehicles.length})`, icon: Car },
+          { id: 'BOOKINGS', label: `Bookings & Handovers (${bookings.length})`, icon: Calendar },
+          { id: 'REVIEWS', label: `Customer Reviews (${reviews.length})`, icon: Star },
+          { id: 'PAYOUTS', label: 'Payout Settlements', icon: DollarSign },
+          { id: 'DOCUMENTS', label: 'Trade Documents', icon: FileCheck2 },
+          { id: 'ONBOARDING', label: 'Business Profile', icon: Building2 },
+          { id: 'NOTIFICATIONS', label: 'Alerts', icon: Bell, unread: unreadNotifCount },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all flex items-center gap-2 whitespace-nowrap active:scale-95 ${
+                isActive
+                  ? 'bg-navy-950 text-white shadow-md shadow-navy-950/20'
+                  : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/80'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+              {tab.unread ? (
+                <span className="w-5 h-5 rounded-full bg-brand-orange text-white text-[10px] font-black flex items-center justify-center">
+                  {tab.unread}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
 
-      {/* TAB: REVIEWS & RATINGS */}
-      {activeTab === 'REVIEWS' && (
-        <div className="space-y-6">
-          {/* Summary Banner */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-1">
-              <div className="text-[10px] uppercase font-bold text-slate-400">Overall Rating</div>
-              <div className="text-2xl font-extrabold text-navy-900 flex items-center gap-1">
-                <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
-                {reviewSummary?.overallRating || 4.8}
+      {/* TAB CONTENT */}
+      {loading ? (
+        <DashboardSkeleton />
+      ) : (
+        <>
+          {/* TAB: OVERVIEW */}
+          {activeTab === 'OVERVIEW' && (
+            <div className="space-y-6">
+              {/* Metric KPI Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-2">
+                  <span className="text-xs font-extrabold text-slate-400 uppercase">Gross Booking Revenue</span>
+                  <div className="text-2xl sm:text-3xl font-black text-navy-950 font-heading">
+                    {formatINR(metrics?.grossRevenue || 18450)}
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-semibold">Excludes customer security deposits</p>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-2">
+                  <span className="text-xs font-extrabold text-slate-400 uppercase">Net Payout Accrued</span>
+                  <div className="text-2xl sm:text-3xl font-black text-emerald-600 font-heading">
+                    {formatINR(metrics?.netPayout || 15682)}
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-semibold">Post platform commission deduction</p>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-2">
+                  <span className="text-xs font-extrabold text-slate-400 uppercase">Active Fleet</span>
+                  <div className="text-2xl sm:text-3xl font-black text-navy-950 font-heading">
+                    {vehicles.filter((v) => v.status === 'APPROVED' || v.status === 'VERIFIED').length} / {vehicles.length}
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-semibold">Vehicles live on marketplace</p>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-2">
+                  <span className="text-xs font-extrabold text-slate-400 uppercase">Partner Rating</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl sm:text-3xl font-black text-amber-500 font-heading">
+                      {Number(reviewSummary?.averageRating || 4.9).toFixed(1)}★
+                    </span>
+                    <span className="text-xs text-slate-400 font-bold">({reviews.length} reviews)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-semibold">Based on verified renter reviews</p>
+                </div>
               </div>
-              <div className="text-[11px] text-slate-500">{reviewSummary?.totalReviews || reviews.length} verified reviews</div>
-            </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-1">
-              <div className="text-[10px] uppercase font-bold text-slate-400">Vehicle Condition</div>
-              <div className="text-xl font-bold text-slate-800">{reviewSummary?.vehicleConditionRating || 4.9}★</div>
-              <div className="text-[11px] text-slate-500">Fleet maintenance</div>
-            </div>
+              {/* Action Required / Active Handovers Table */}
+              <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-extrabold font-heading text-navy-950 text-base">Pending Handovers & Return Inspections</h3>
+                  <button onClick={() => setActiveTab('BOOKINGS')} className="text-xs font-bold text-brand-orange hover:underline">
+                    View All
+                  </button>
+                </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-1">
-              <div className="text-[10px] uppercase font-bold text-slate-400">Host Behavior</div>
-              <div className="text-xl font-bold text-slate-800">{reviewSummary?.vendorBehaviorRating || 4.8}★</div>
-              <div className="text-[11px] text-slate-500">Customer politeness</div>
-            </div>
-
-            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-1">
-              <div className="text-[10px] uppercase font-bold text-slate-400">Pickup Experience</div>
-              <div className="text-xl font-bold text-slate-800">{reviewSummary?.pickupExperienceRating || 4.8}★</div>
-              <div className="text-[11px] text-slate-500">Punctual handovers</div>
-            </div>
-
-            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-1">
-              <div className="text-[10px] uppercase font-bold text-slate-400">Reliability Score</div>
-              <div className="text-xl font-bold text-emerald-700">{reliabilityScore} / 100</div>
-              <div className="text-[11px] text-slate-500">{cancellationCount} vendor cancellations</div>
-            </div>
-          </div>
-
-          {/* Reviews List */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-            <h3 className="font-bold text-slate-900 text-base font-heading">Traveller Reviews for Your Fleet</h3>
-
-            {reviews.length === 0 ? (
-              <div className="p-12 text-center border-2 border-dashed rounded-2xl text-slate-400 text-xs">
-                No customer reviews yet. Reviews will appear here once riders complete their rentals.
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {reviews.map((r) => (
-                  <div key={r._id} className="py-4 space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900">{r.customerName}</span>
-                        {r.isVerifiedRental && (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[9px] flex items-center gap-0.5">
-                            <CheckCircle2 className="w-2.5 h-2.5" /> Verified Ride
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-0.5 text-amber-400">
-                        {Array.from({ length: r.overallRating || 5 }).map((_, si) => (
-                          <Star key={si} className="w-3 h-3 fill-amber-400" />
+                {bookings.length === 0 ? (
+                  <EmptyState
+                    title="No bookings pending action"
+                    description="When customers reserve your fleet, pickup checklists and return inspections will appear here."
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-100 text-slate-400 font-extrabold uppercase text-[10px]">
+                          <th className="pb-3">Code</th>
+                          <th className="pb-3">Vehicle</th>
+                          <th className="pb-3">Customer</th>
+                          <th className="pb-3">Pickup Window</th>
+                          <th className="pb-3">Status</th>
+                          <th className="pb-3 text-right">Handover Inspection</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {bookings.slice(0, 5).map((b) => (
+                          <tr key={b._id} className="hover:bg-slate-50/80">
+                            <td className="py-3 font-mono font-bold text-slate-900">{b.bookingCode}</td>
+                            <td className="py-3 font-bold text-slate-900">{b.vehicleId?.brand} {b.vehicleId?.model}</td>
+                            <td className="py-3 text-slate-600">{b.customerDetails?.fullName || 'Aarav Sharma'}</td>
+                            <td className="py-3 text-slate-500">{formatDateTime(b.pickupDateTime)}</td>
+                            <td className="py-3"><StatusBadge status={b.status} size="sm" /></td>
+                            <td className="py-3 text-right">
+                              <button
+                                onClick={() =>
+                                  setInspectionModal({
+                                    open: true,
+                                    bookingId: b._id,
+                                    vehicleId: b.vehicleId?._id || '',
+                                    vehicleName: `${b.vehicleId?.brand} ${b.vehicleId?.model}`,
+                                    handoverType: b.status === 'CONFIRMED' ? 'PICKUP' : 'RETURN',
+                                  })
+                                }
+                                className="px-3 py-1.5 rounded-xl bg-navy-950 hover:bg-slate-900 text-white font-extrabold text-[11px] shadow-sm active:scale-95"
+                              >
+                                {b.status === 'CONFIRMED' ? '📷 Start Pickup Inspection' : '🔍 Process Return Audit'}
+                              </button>
+                            </td>
+                          </tr>
                         ))}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 text-[10px] text-slate-500">
-                      <span className="bg-slate-50 px-2 py-0.5 rounded border">Vehicle: {r.vehicleConditionRating || r.overallRating}★</span>
-                      <span className="bg-slate-50 px-2 py-0.5 rounded border">Host: {r.vendorBehaviorRating || r.overallRating}★</span>
-                      <span className="bg-slate-50 px-2 py-0.5 rounded border">Pickup: {r.pickupExperienceRating || r.overallRating}★</span>
-                    </div>
-
-                    <p className="text-slate-700">{r.reviewText}</p>
-
-                    {r.vendorReply && r.vendorReply.text ? (
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 mt-2 space-y-1">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <strong className="text-slate-900">Your Response:</strong>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setReplyModalReview(r);
-                              setReplyText(r.vendorReply.text);
-                            }}
-                            className="text-brand-orange hover:underline font-bold"
-                          >
-                            Edit Response
-                          </button>
-                        </div>
-                        <p className="text-slate-700">{r.vendorReply.text}</p>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setReplyModalReview(r);
-                          setReplyText('');
-                        }}
-                        className="px-3 py-1.5 bg-navy-900 hover:bg-navy-950 text-white rounded-xl font-bold text-xs flex items-center gap-1 mt-2"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" /> Reply to Review
-                      </button>
-                    )}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB: NOTIFICATIONS */}
-      {activeTab === 'NOTIFICATIONS' && (
-        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-          <h3 className="font-bold text-slate-900 text-base font-heading flex items-center gap-2">
-            <Bell className="w-4 h-4 text-brand-orange" /> Operator Notifications
-          </h3>
-
-          {notifications.length === 0 ? (
-            <div className="p-12 text-center border-2 border-dashed rounded-2xl text-slate-400 text-xs">
-              No notifications yet.
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {notifications.map((n) => (
-                <div key={n._id} className="p-4 flex items-start justify-between gap-4 text-xs">
-                  <div className="space-y-1">
-                    <div className="font-bold text-slate-900">{n.title}</div>
-                    <p className="text-slate-600">{n.message}</p>
-                    <span className="text-[10px] text-slate-400">{formatDateTime(n.createdAt)}</span>
-                  </div>
-                </div>
-              ))}
             </div>
           )}
-        </div>
-      )}
 
-      {/* TAB: FLEET */}
-      {activeTab === 'FLEET' && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-base font-heading">Fleet Vehicles</h3>
-              <button
-                type="button"
-                onClick={() => setShowAddVehicleModal(true)}
-                className="px-4 py-2 bg-brand-orange text-white rounded-xl text-xs font-bold flex items-center gap-1.5"
-              >
-                <Plus className="w-4 h-4" /> Add Vehicle
-              </button>
-            </div>
-
-            {vehicles.length === 0 ? (
-              <div className="p-12 text-center border-2 border-dashed rounded-2xl text-slate-400 text-xs">
-                No vehicles listed yet.
+          {/* TAB: FLEET INVENTORY */}
+          {activeTab === 'FLEET' && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="font-black font-heading text-navy-950 text-xl">Fleet Inventory ({vehicles.length})</h3>
+                  <p className="text-xs text-slate-500 font-medium">Manage pricing, deposits, and availability status for your listed fleet.</p>
+                </div>
+                <button
+                  onClick={() => setShowAddVehicleModal(true)}
+                  className="px-4 py-2 bg-brand-orange hover:bg-brand-dark text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1 active:scale-95"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Vehicle
+                </button>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b text-slate-400 uppercase text-[10px]">
-                      <th className="pb-3 px-3">Vehicle</th>
-                      <th className="pb-3 px-3">Registration</th>
-                      <th className="pb-3 px-3">Daily Rent</th>
-                      <th className="pb-3 px-3">Deposit</th>
-                      <th className="pb-3 px-3">Rating</th>
-                      <th className="pb-3 px-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {vehicles.map((v) => (
-                      <tr key={v._id}>
-                        <td className="py-3 px-3 font-bold text-slate-900">{v.brand} {v.model}</td>
-                        <td className="py-3 px-3 font-mono font-bold text-slate-800">{v.registrationNumber}</td>
-                        <td className="py-3 px-3 font-bold">{formatINR(v.pricePerDay)}/day</td>
-                        <td className="py-3 px-3 font-semibold text-emerald-700">{formatINR(v.securityDeposit)}</td>
-                        <td className="py-3 px-3 font-bold text-amber-600">{v.rating || 4.8}★</td>
-                        <td className="py-3 px-3">
-                          <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase ${v.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                            {v.status || (v.isVerified ? 'APPROVED' : 'UNDER_REVIEW')}
-                          </span>
-                        </td>
+
+              {vehicles.length === 0 ? (
+                <EmptyState
+                  title="No vehicles in inventory"
+                  description="List your first scooter, motorcycle, or car to start receiving bookings."
+                  actionText="Add Vehicle to Fleet"
+                  onAction={() => setShowAddVehicleModal(true)}
+                />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-slate-400 font-extrabold uppercase text-[10px]">
+                        <th className="pb-3">Vehicle</th>
+                        <th className="pb-3">Category</th>
+                        <th className="pb-3">Reg. Number</th>
+                        <th className="pb-3">Daily Rate</th>
+                        <th className="pb-3">Deposit</th>
+                        <th className="pb-3">Status</th>
+                        <th className="pb-3 text-right">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB: ONBOARDING */}
-      {activeTab === 'ONBOARDING' && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 space-y-6">
-          <h3 className="font-bold text-slate-900 text-base font-heading">Agency Business Profile</h3>
-          {profileMsg && (
-            <div className={`p-3 rounded-xl text-xs font-bold ${profileMsg.type === 'success' ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>
-              {profileMsg.text}
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {vehicles.map((v) => (
+                        <tr key={v._id} className="hover:bg-slate-50">
+                          <td className="py-3.5 flex items-center gap-3">
+                            <div className="w-10 h-8 rounded-lg bg-slate-200 relative overflow-hidden shrink-0">
+                              <Image
+                                src={v.images?.[0] || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=100&q=80'}
+                                alt={v.model}
+                                fill
+                                sizes="40px"
+                                className="object-cover"
+                              />
+                            </div>
+                            <span className="font-extrabold text-slate-900 font-heading">{v.brand} {v.model}</span>
+                          </td>
+                          <td className="py-3.5 font-semibold text-slate-600">{v.category}</td>
+                          <td className="py-3.5 font-mono font-bold text-slate-700">{v.registrationNumber || 'UK07-XX-0000'}</td>
+                          <td className="py-3.5 font-black text-navy-950 font-heading">{formatINR(v.pricePerDay)}/day</td>
+                          <td className="py-3.5 font-bold text-emerald-700">{formatINR(v.securityDeposit)}</td>
+                          <td className="py-3.5"><StatusBadge status={v.status || 'APPROVED'} size="sm" /></td>
+                          <td className="py-3.5 text-right">
+                            <Link href={`/vehicles/${v._id}`} className="p-2 text-slate-600 hover:text-brand-orange font-bold text-xs">
+                              Preview
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
-          <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Business Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  className="w-full p-2.5 border rounded-xl"
+
+          {/* TAB: BOOKINGS & HANDOVERS */}
+          {activeTab === 'BOOKINGS' && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6">
+              <h3 className="font-black font-heading text-navy-950 text-xl">All Fleet Bookings & Inspections</h3>
+
+              {bookings.length === 0 ? (
+                <EmptyState
+                  title="No bookings recorded"
+                  description="When riders reserve vehicles, all trip manifests and digital inspection histories appear here."
                 />
-              </div>
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Owner Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={ownerName}
-                  onChange={(e) => setOwnerName(e.target.value)}
-                  className="w-full p-2.5 border rounded-xl"
-                />
-              </div>
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Phone Number *</label>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full p-2.5 border rounded-xl"
-                />
-              </div>
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Email Address *</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-2.5 border rounded-xl"
-                />
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  {bookings.map((b) => (
+                    <div key={b._id} className="p-5 rounded-3xl bg-slate-50 border border-slate-200/80 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-slate-900 text-xs px-2 py-0.5 rounded bg-white border">{b.bookingCode}</span>
+                          <span className="font-black text-navy-950 text-base font-heading">{b.vehicleId?.brand} {b.vehicleId?.model}</span>
+                          <StatusBadge status={b.status} size="sm" />
+                        </div>
+                        <p className="text-xs text-slate-600 font-medium mt-1">Rider: {b.customerDetails?.fullName} ({b.customerDetails?.phone})</p>
+                        <p className="text-[11px] text-slate-400 font-medium">{formatDateTime(b.pickupDateTime)} → {formatDateTime(b.returnDateTime)}</p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-right mr-2">
+                          <div className="font-black text-navy-950 font-heading text-base">{formatINR(b.pricing?.totalPrice || 999)}</div>
+                          <span className="text-[10px] text-emerald-700 font-bold">Deposit: {formatINR(b.pricing?.securityDeposit || 1000)}</span>
+                        </div>
+
+                        <button
+                          onClick={() =>
+                            setInspectionModal({
+                              open: true,
+                              bookingId: b._id,
+                              vehicleId: b.vehicleId?._id || '',
+                              vehicleName: `${b.vehicleId?.brand} ${b.vehicleId?.model}`,
+                              handoverType: b.status === 'CONFIRMED' ? 'PICKUP' : 'RETURN',
+                            })
+                          }
+                          className="px-4 py-2 bg-navy-950 hover:bg-slate-900 text-white font-extrabold text-xs rounded-xl shadow-md active:scale-95"
+                        >
+                          {b.status === 'CONFIRMED' ? '📷 Pickup Inspection' : '🔍 Return Inspection'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <button
-              type="submit"
-              disabled={savingProfile}
-              className="px-6 py-2.5 bg-navy-900 text-white rounded-xl font-bold"
-            >
-              {savingProfile ? 'Saving...' : 'Save Profile'}
-            </button>
-          </form>
-        </div>
-      )}
+          )}
 
-      {/* REPLY TO REVIEW MODAL */}
-      {replyModalReview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-slate-900 text-base font-heading flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-brand-orange" /> Reply to Customer Review
-              </h3>
-              <button type="button" onClick={() => setReplyModalReview(null)} className="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
+          {/* TAB: REVIEWS */}
+          {activeTab === 'REVIEWS' && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6">
+              <h3 className="font-black font-heading text-navy-950 text-xl">Customer Reviews & Host Replies ({reviews.length})</h3>
 
-            <div className="bg-slate-50 p-3 rounded-2xl border text-xs space-y-1">
-              <div className="font-bold text-slate-800">{replyModalReview.customerName} ({replyModalReview.overallRating}★)</div>
-              <p className="text-slate-600 italic">&ldquo;{replyModalReview.reviewText}&rdquo;</p>
-            </div>
-
-            <form onSubmit={handleReplyReview} className="space-y-4 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Your Official Host Reply *</label>
-                <textarea
-                  required
-                  rows={4}
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Thank the customer or address any feedback constructively..."
-                  className="w-full p-3 border rounded-xl outline-none"
+              {reviews.length === 0 ? (
+                <EmptyState
+                  title="No reviews yet"
+                  description="When riders complete trips with your vehicles, their ratings and feedback will appear here."
                 />
+              ) : (
+                <div className="space-y-4">
+                  {reviews.map((r) => (
+                    <div key={r._id} className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3 text-xs">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900">{r.customerName}</span>
+                          <span className="text-[10px] text-slate-400">({r.vehicleId?.brand} {r.vehicleId?.model})</span>
+                        </div>
+                        <div className="flex items-center gap-0.5 text-amber-400">
+                          {Array.from({ length: r.overallRating || 5 }).map((_, i) => (
+                            <Star key={i} className="w-3 h-3 fill-amber-400" />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-slate-700">{r.reviewText}</p>
+
+                      {r.vendorReply?.text ? (
+                        <div className="p-3 bg-white rounded-xl border border-slate-200 text-slate-600">
+                          <strong className="text-slate-900 block text-[11px]">Your Public Response:</strong>
+                          <p className="text-xs">{r.vendorReply.text}</p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setReplyModalReview(r)}
+                          className="px-3 py-1.5 bg-navy-950 text-white rounded-xl font-bold text-[11px]"
+                        >
+                          Reply to Review
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: PAYOUT SETTLEMENTS */}
+          {activeTab === 'PAYOUTS' && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6 max-w-2xl">
+              <div className="border-b border-slate-100 pb-4">
+                <h3 className="font-black font-heading text-navy-950 text-xl">Bank Account & Payout Settings</h3>
+                <p className="text-xs text-slate-500 font-medium">Encrypted payout account for weekly automated settlements.</p>
               </div>
 
-              <div className="flex gap-2 justify-end pt-2">
-                <button type="button" onClick={() => setReplyModalReview(null)} className="px-4 py-2 border rounded-xl text-xs font-bold text-slate-600">
-                  Cancel
-                </button>
+              {payoutMessage && (
+                <div className={`p-4 rounded-2xl text-xs font-bold ${payoutMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`}>
+                  {payoutMessage.text}
+                </div>
+              )}
+
+              <form onSubmit={handleSavePayoutProfile} className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Beneficiary Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={beneficiaryName}
+                    onChange={(e) => setBeneficiaryName(e.target.value)}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 outline-none font-bold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Bank Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 outline-none font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">IFSC Code</label>
+                    <input
+                      type="text"
+                      required
+                      value={ifscCode}
+                      onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 outline-none font-mono font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Account Number</label>
+                    <input
+                      type="password"
+                      required
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 outline-none font-mono font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Confirm Account Number</label>
+                    <input
+                      type="text"
+                      required
+                      value={confirmAccountNumber}
+                      onChange={(e) => setConfirmAccountNumber(e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 outline-none font-mono font-bold"
+                    />
+                  </div>
+                </div>
+
                 <button
                   type="submit"
-                  disabled={replySubmitting}
-                  className="px-5 py-2 bg-navy-900 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50"
+                  disabled={savingPayout}
+                  className="px-6 py-2.5 bg-navy-950 hover:bg-slate-900 text-white rounded-xl font-extrabold text-xs shadow-md transition-all"
                 >
-                  {replySubmitting ? 'Submitting...' : 'Post Reply'}
+                  {savingPayout ? 'Encrypting & Saving...' : 'Save Payout Profile'}
                 </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ADD VEHICLE MODAL */}
-      {showAddVehicleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-slate-200 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-slate-900 text-base font-heading flex items-center gap-2">
-                <Car className="w-5 h-5 text-brand-orange" /> Add Vehicle to Fleet
-              </h3>
-              <button type="button" onClick={() => setShowAddVehicleModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              </form>
             </div>
+          )}
 
-            <form onSubmit={handleAddVehicle} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+          {/* TAB: ONBOARDING & BUSINESS PROFILE */}
+          {activeTab === 'ONBOARDING' && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6 max-w-2xl">
+              <div className="border-b border-slate-100 pb-4">
+                <h3 className="font-black font-heading text-navy-950 text-xl">Business Profile & Operating Hours</h3>
+                <p className="text-xs text-slate-500 font-medium">Commercial details shown on marketplace listings.</p>
+              </div>
+
+              {profileMsg && (
+                <div className={`p-4 rounded-2xl text-xs font-bold ${profileMsg.type === 'success' ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`}>
+                  {profileMsg.text}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Business Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Owner Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={ownerName}
+                      onChange={(e) => setOwnerName(e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 font-bold"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Brand *</label>
+                  <label className="block font-bold text-slate-700 mb-1">Shop Address</label>
                   <input
                     type="text"
                     required
-                    placeholder="Honda / Royal Enfield"
-                    value={vehicleForm.brand}
-                    onChange={(e) => setVehicleForm({ ...vehicleForm, brand: e.target.value })}
-                    className="w-full p-2.5 border rounded-xl"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 font-medium"
                   />
                 </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Model *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Activa 6G / Himalayan"
-                    value={vehicleForm.model}
-                    onChange={(e) => setVehicleForm({ ...vehicleForm, model: e.target.value })}
-                    className="w-full p-2.5 border rounded-xl"
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Category</label>
-                  <select
-                    value={vehicleForm.category}
-                    onChange={(e) => setVehicleForm({ ...vehicleForm, category: e.target.value })}
-                    className="w-full p-2.5 border rounded-xl bg-white"
-                  >
-                    <option value="SCOOTER">Scooter</option>
-                    <option value="MOTORCYCLE">Motorcycle</option>
-                    <option value="CAR">Car</option>
-                    <option value="EV">Electric Vehicle (EV)</option>
-                  </select>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">City Hub</label>
+                    <input
+                      type="text"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">GST Number</label>
+                    <input
+                      type="text"
+                      value={gstNumber}
+                      onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 font-mono font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Rental Permit No.</label>
+                    <input
+                      type="text"
+                      value={rentalLicenseNumber}
+                      onChange={(e) => setRentalLicenseNumber(e.target.value)}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 font-mono font-bold"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Registration Number *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="UK07AZ1234"
-                    value={vehicleForm.registrationNumber}
-                    onChange={(e) => setVehicleForm({ ...vehicleForm, registrationNumber: e.target.value.toUpperCase() })}
-                    className="w-full p-2.5 border rounded-xl font-mono uppercase"
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Daily Rent (₹) *</label>
-                  <input
-                    type="number"
-                    required
-                    value={vehicleForm.pricePerDay}
-                    onChange={(e) => setVehicleForm({ ...vehicleForm, pricePerDay: Number(e.target.value) })}
-                    className="w-full p-2.5 border rounded-xl font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Security Deposit (₹)</label>
-                  <input
-                    type="number"
-                    value={vehicleForm.securityDeposit}
-                    onChange={(e) => setVehicleForm({ ...vehicleForm, securityDeposit: Number(e.target.value) })}
-                    className="w-full p-2.5 border rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-2 justify-end pt-3">
-                <button type="button" onClick={() => setShowAddVehicleModal(false)} className="px-4 py-2 border rounded-xl text-xs font-bold text-slate-600">
-                  Cancel
-                </button>
                 <button
                   type="submit"
-                  disabled={savingVehicle}
-                  className="px-5 py-2 bg-brand-orange text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50"
+                  disabled={savingProfile}
+                  className="px-6 py-2.5 bg-navy-950 hover:bg-slate-900 text-white rounded-xl font-extrabold text-xs shadow-md"
                 >
-                  {savingVehicle ? 'Submitting...' : 'Submit Vehicle for Review'}
+                  {savingProfile ? 'Saving...' : 'Update Business Profile'}
                 </button>
-              </div>
-            </form>
-          </div>
-        </div>
+              </form>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* DIGITAL HANDOVER INSPECTION MODAL */}
+      {inspectionModal && (
+        <DigitalInspectionModal
+          isOpen={inspectionModal.open}
+          onClose={() => setInspectionModal(null)}
+          bookingId={inspectionModal.bookingId}
+          vehicleId={inspectionModal.vehicleId}
+          vehicleName={inspectionModal.vehicleName}
+          handoverType={inspectionModal.handoverType}
+          onInspectionComplete={() => {
+            setInspectionModal(null);
+            loadVendorData();
+          }}
+        />
       )}
     </div>
   );
