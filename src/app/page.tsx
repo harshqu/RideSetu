@@ -7,6 +7,7 @@ import SearchWidget from '@/components/marketplace/SearchWidget';
 import VehicleCard from '@/components/marketplace/VehicleCard';
 import StatCounter from '@/components/ui/StatCounter';
 import ScrollReveal from '@/components/ui/ScrollReveal';
+import HimalayanAnimation from '@/components/home/HimalayanAnimation';
 import { formatINR } from '@/lib/utils';
 import {
   Compass,
@@ -86,11 +87,9 @@ export default function HomePage() {
   return (
     <div className="space-y-16 sm:space-y-24 pb-16">
       {/* Hero Section */}
-      <section className="relative pt-12 pb-24 md:pt-20 md:pb-32 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-b from-navy-950 via-[#0a1228] to-navy-950 text-white">
-        {/* Background Decorative Aura */}
-        <div className="absolute inset-0 opacity-25 bg-himalayan-dots pointer-events-none" />
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-brand-orange/15 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-10 left-10 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <section className="relative pt-12 pb-24 md:pt-20 md:pb-32 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-b from-navy-950 via-[#0a1228] to-navy-950 text-white min-h-[600px] flex items-center justify-center">
+        {/* Animated Himalayan Mountain & Rider Scene */}
+        <HimalayanAnimation />
 
         <div className="max-w-6xl mx-auto relative z-10 text-center space-y-6">
           {/* Tagline Badge - Stagger 1 */}

@@ -124,6 +124,131 @@ h1, h2, h3, h4, .font-heading {
   }
 }
 
+/* --- HIMALAYAN CINEMATIC ANIMATIONS --- */
+@keyframes riderTravel {
+  0% {
+    transform: translateX(-160px);
+  }
+  100% {
+    transform: translateX(calc(100vw + 160px));
+  }
+}
+
+@keyframes bikeSuspension {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-2.5px) rotate(0.8deg);
+  }
+  50% {
+    transform: translateY(1px) rotate(-0.4deg);
+  }
+  75% {
+    transform: translateY(-1.5px) rotate(0.4deg);
+  }
+}
+
+@keyframes wheelSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes roadDashes {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes cloudDrift {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes cloudDriftSlow {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes birdsFlight {
+  0% {
+    transform: translate(-100px, 0) scale(0.85);
+  }
+  50% {
+    transform: translate(50vw, -15px) scale(1);
+  }
+  100% {
+    transform: translate(calc(100vw + 100px), -5px) scale(0.9);
+  }
+}
+
+@keyframes birdsFlightDelayed {
+  0% {
+    transform: translate(-80px, 10px) scale(0.7);
+  }
+  50% {
+    transform: translate(45vw, -8px) scale(0.85);
+  }
+  100% {
+    transform: translate(calc(100vw + 80px), 8px) scale(0.75);
+  }
+}
+
+@keyframes parallaxMid {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-15px);
+  }
+}
+
+@keyframes parallaxNear {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-24px);
+  }
+}
+
+@keyframes pingSlow {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes pulseSlow {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.38;
+    transform: scale(1.08);
+  }
+}
+
 /* Staggered Entrance Utility Classes */
 .animate-fade-in-up {
   animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -161,6 +286,55 @@ h1, h2, h3, h4, .font-heading {
   animation: pulseGlow 3s ease-in-out infinite;
 }
 
+/* Himalayan Animation Classes */
+.animate-rider-travel {
+  animation: riderTravel 16s linear infinite;
+}
+
+.animate-bike-suspension {
+  animation: bikeSuspension 1.2s ease-in-out infinite;
+}
+
+.animate-wheel-spin {
+  animation: wheelSpin 0.55s linear infinite;
+}
+
+.animate-road-dashes {
+  animation: roadDashes 1.6s linear infinite;
+}
+
+.animate-cloud-drift {
+  animation: cloudDrift 55s linear infinite;
+}
+
+.animate-cloud-drift-slow {
+  animation: cloudDriftSlow 80s linear infinite;
+}
+
+.animate-birds-flight {
+  animation: birdsFlight 22s ease-in-out infinite;
+}
+
+.animate-birds-flight-delayed {
+  animation: birdsFlightDelayed 28s ease-in-out 10s infinite;
+}
+
+.animate-parallax-mid {
+  animation: parallaxMid 18s ease-in-out infinite;
+}
+
+.animate-parallax-near {
+  animation: parallaxNear 12s ease-in-out infinite;
+}
+
+.animate-ping-slow {
+  animation: pingSlow 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 5s ease-in-out infinite;
+}
+
 .animate-shimmer {
   position: relative;
   overflow: hidden;
@@ -193,5 +367,20 @@ h1, h2, h3, h4, .font-heading {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .animate-rider-travel,
+  .animate-bike-suspension,
+  .animate-wheel-spin,
+  .animate-road-dashes,
+  .animate-cloud-drift,
+  .animate-cloud-drift-slow,
+  .animate-birds-flight,
+  .animate-birds-flight-delayed,
+  .animate-parallax-mid,
+  .animate-parallax-near,
+  .animate-ping-slow,
+  .animate-pulse-slow {
+    animation: none !important;
   }
 }
