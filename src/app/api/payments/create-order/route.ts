@@ -5,6 +5,7 @@ import { Vehicle } from '@/models/Vehicle';
 import { User } from '@/models/User';
 import { Coupon } from '@/models/Coupon';
 import { Payment } from '@/models/Payment';
+import { Booking } from '@/models/Booking';
 import { KYCVerification } from '@/models/KYCVerification';
 import { AvailabilityService } from '@/services/availability.service';
 import connectToDatabase from '@/lib/mongodb';
@@ -81,11 +82,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Availability Pre-check
+    // 3. Availability Pre-check (Excluding current user's existing active reservation hold)
     const avail = await AvailabilityService.isVehicleAvailable({
       vehicleId,
       pickupDateTime,
       returnDateTime,
+      excludeUserId: user.userId,
     });
 
     if (!avail.available) {
@@ -95,14 +97,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Idempotency Check: Return existing active payment order if same attempt
+    // 4. Idempotency Check: Return existing active payment order or already confirmed booking
     const activeKey = idempotencyKey || `idem_${user.userId}_${vehicleId}_${new Date(pickupDateTime).getTime()}_${new Date(returnDateTime).getTime()}`;
     const existingPayment = await Payment.findOne({
       idempotencyKey: activeKey,
-      status: { $in: ['CREATED', 'PENDING'] },
+      status: { $in: ['CREATED', 'PENDING', 'CAPTURED', 'SUCCESS'] },
     }).lean();
 
     if (existingPayment) {
+      if (existingPayment.status === 'CAPTURED' || (existingPayment.status as string) === 'SUCCESS') {
+        const existingBooking = existingPayment.bookingId
+          ? await Booking.findById(existingPayment.bookingId).lean()
+          : null;
+        return NextResponse.json({
+          success: true,
+          isAlreadyCaptured: true,
+          booking: existingBooking,
+          order: {
+            orderId: existingPayment.providerOrderId,
+            amount: Math.round(existingPayment.amount * 100),
+            currency: existingPayment.currency,
+            keyId: PaymentService.getKeyId(),
+            pricing: existingPayment.breakdown,
+            isSandbox: true,
+          },
+        });
+      }
+
       return NextResponse.json({
         success: true,
         order: {
@@ -131,21 +152,23 @@ export async function POST(req: NextRequest) {
       coupon: coupon as any,
     });
 
-    // 6. Acquire Distributed Reservation Lock
+    // 6. Acquire or Reuse Distributed Reservation Lock for Current User
     let reservationLockId: string | undefined;
-    try {
-      const lockResult = await AvailabilityService.acquireDistributedReservation({
-        vehicleId,
-        pickupDateTime,
-        returnDateTime,
-        durationMinutes: 15,
-      });
-      if (lockResult.acquired && lockResult.reservation) {
-        reservationLockId = lockResult.reservation._id.toString();
-      }
-    } catch {
-      // Graceful fallback for single-node environments
-      reservationLockId = `lock_${Date.now()}`;
+    const lockResult = await AvailabilityService.acquireDistributedReservation({
+      vehicleId,
+      userId: user.userId,
+      pickupDateTime,
+      returnDateTime,
+      durationMinutes: 15,
+    });
+
+    if (lockResult.acquired && lockResult.reservation) {
+      reservationLockId = lockResult.reservation._id.toString();
+    } else {
+      return NextResponse.json(
+        { success: false, error: lockResult.reason || 'This vehicle is temporarily reserved for another customer for the selected dates.' },
+        { status: 409 }
+      );
     }
 
     // 7. Create Razorpay Test/Sandbox Order

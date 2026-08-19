@@ -5,6 +5,7 @@ export type ReservationStatus = 'HOLD' | 'CONFIRMED' | 'RELEASED' | 'EXPIRED';
 export interface IReservationLock extends Document {
   _id: mongoose.Types.ObjectId;
   vehicleId: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId;
   pickupDateTime: Date;
   returnDateTime: Date;
   status: ReservationStatus;
@@ -21,6 +22,11 @@ const ReservationLockSchema = new Schema<IReservationLock>(
       type: Schema.Types.ObjectId,
       ref: 'Vehicle',
       required: true,
+      index: true,
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       index: true,
     },
     pickupDateTime: {
@@ -52,7 +58,7 @@ const ReservationLockSchema = new Schema<IReservationLock>(
     expiresAt: {
       type: Date,
       required: true,
-      index: { expires: '10m' }, // TTL index auto-cleans unconfirmed holds
+      index: { expires: '15m' }, // TTL index auto-cleans unconfirmed holds
     },
   },
   {
@@ -62,7 +68,8 @@ const ReservationLockSchema = new Schema<IReservationLock>(
 
 // High-speed compound indexes for distributed overlap detection across instances
 ReservationLockSchema.index({ vehicleId: 1, pickupDateTime: 1, returnDateTime: 1, status: 1 });
-ReservationLockSchema.index({ vehicleId: 1, status: 1 });
+ReservationLockSchema.index({ vehicleId: 1, status: 1, expiresAt: 1 });
+ReservationLockSchema.index({ userId: 1, vehicleId: 1, status: 1 });
 
 export const ReservationLock: Model<IReservationLock> =
   mongoose.models.ReservationLock ||

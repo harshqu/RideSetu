@@ -93,9 +93,10 @@ export class BookingService {
       }
     }
 
-    // Acquire distributed reservation lock on MongoDB Atlas
+    // Acquire or reuse distributed reservation lock on MongoDB Atlas
     const reservation = await AvailabilityService.acquireDistributedReservation({
       vehicleId: dto.vehicleId,
+      userId: dto.customerId,
       pickupDateTime: dto.pickupDateTime,
       returnDateTime: dto.returnDateTime,
     });

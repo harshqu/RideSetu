@@ -861,7 +861,7 @@ export default function CustomerDashboardPage() {
           {/* TAB: PAYMENTS & LEDGER */}
           {activeTab === 'PAYMENTS' && (
             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm space-y-6">
-              <h3 className="font-black font-heading text-navy-950 text-xl">Payment Transactions & Refunds ({payments.length})</h3>
+              <h3 className="font-black font-heading text-navy-950 text-xl">Payment Transactions & Security Deposits ({payments.length})</h3>
 
               {payments.length === 0 ? (
                 <EmptyState
@@ -871,14 +871,30 @@ export default function CustomerDashboardPage() {
               ) : (
                 <div className="space-y-3">
                   {payments.map((p) => (
-                    <div key={p._id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-4 text-xs">
-                      <div>
-                        <div className="font-black text-slate-900 font-heading">{p.razorpayPaymentId || p._id}</div>
-                        <div className="text-slate-500">{formatDateTime(p.createdAt)} • {p.method}</div>
+                    <div key={p._id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <div className="font-black text-slate-900 font-heading text-sm">
+                            Ref: {p.providerPaymentId || p.razorpayPaymentId || p._id}
+                          </div>
+                          <div className="text-slate-500 text-[11px]">
+                            {formatDateTime(p.createdAt)} • Method: <span className="font-bold text-slate-700">{p.method || 'UPI'}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-black text-navy-950 font-heading text-base">{formatINR(p.amount)}</div>
+                          <StatusBadge status={p.status} size="sm" />
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-black text-navy-950 font-heading text-sm">{formatINR(p.amount)}</div>
-                        <StatusBadge status={p.status} size="sm" />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-200/60 text-[11px] text-slate-600">
+                        <div>
+                          <span className="text-slate-400 font-medium">Order ID: </span>
+                          <span className="font-mono font-semibold">{p.providerOrderId || p.razorpayOrderId || 'N/A'}</span>
+                        </div>
+                        <div className="sm:text-right">
+                          <span className="text-emerald-700 font-bold">🔒 Includes {formatINR(p.breakdown?.securityDeposit || 1000)} Refundable Deposit</span>
+                        </div>
                       </div>
                     </div>
                   ))}

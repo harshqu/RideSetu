@@ -727,6 +727,11 @@ function BookingFlowContent() {
         orderId={orderData?.orderId}
         keyId={orderData?.keyId}
         vehicleName={`${vehicle?.brand} ${vehicle?.model}`}
+        customerDetails={{
+          name: fullName,
+          email,
+          phone,
+        }}
         onPaymentComplete={handlePaymentComplete}
       />
     </div>
