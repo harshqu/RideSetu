@@ -303,32 +303,57 @@ function BookingFlowContent() {
 
       {/* Progress Steps Header */}
       <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between relative">
-          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 -translate-y-1/2 z-0"></div>
+        {/* Desktop Stepper */}
+        <div className="hidden sm:flex items-center justify-between relative">
+          <div className="absolute top-1/2 left-8 right-8 h-1 bg-slate-200 -translate-y-1/2 z-0 rounded-full"></div>
           {[
             { s: 1, label: 'Trip & Delivery' },
             { s: 2, label: 'Traveller & KYC' },
             { s: 3, label: 'Review & Pay' },
           ].map((item) => (
-            <div key={item.s} className="relative z-10 flex flex-col items-center bg-slate-50 px-2">
+            <div key={item.s} className="relative z-10 flex flex-col items-center bg-slate-50 px-3">
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition-colors ${
-                  step >= item.s
-                    ? 'bg-brand-orange text-white ring-4 ring-brand-orange/20 shadow-md'
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-xs transition-all duration-300 ${
+                  step > item.s
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : step === item.s
+                    ? 'bg-gradient-to-r from-brand-orange to-amber-500 text-white ring-4 ring-brand-orange/20 shadow-md shadow-brand-orange/30 scale-105'
                     : 'bg-white border-2 border-slate-300 text-slate-400'
                 }`}
               >
                 {step > item.s ? <CheckCircle2 className="w-5 h-5" /> : item.s}
               </div>
               <span
-                className={`text-[11px] font-bold mt-1.5 ${
-                  step >= item.s ? 'text-slate-900' : 'text-slate-400'
+                className={`text-xs font-black mt-2 font-heading tracking-tight ${
+                  step === item.s
+                    ? 'text-navy-950 font-bold'
+                    : step > item.s
+                    ? 'text-emerald-700 font-bold'
+                    : 'text-slate-400'
                 }`}
               >
                 {item.label}
               </span>
             </div>
           ))}
+        </div>
+
+        {/* Mobile Compact Progress Bar */}
+        <div className="sm:hidden bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-brand-orange uppercase tracking-wider text-[10px] font-black">
+              Step {step} of 3
+            </span>
+            <span className="text-navy-950 font-heading">
+              {step === 1 ? 'Trip & Delivery' : step === 2 ? 'Traveller & KYC' : 'Review & Pay'}
+            </span>
+          </div>
+          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-brand-orange to-amber-500 h-full transition-all duration-300 rounded-full"
+              style={{ width: `${(step / 3) * 100}%` }}
+            />
+          </div>
         </div>
       </div>
 

@@ -15,7 +15,6 @@ import {
   Truck,
   Zap,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 
 interface VehicleCardProps {
@@ -41,7 +40,7 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
   const detailUrl = `/vehicles/${vehicle._id}`;
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-brand-orange/30 transition-all duration-300 flex flex-col justify-between overflow-hidden group">
+    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-brand-orange/30 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden group">
       {/* Top Media & Badges */}
       <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden">
         <Image
@@ -57,11 +56,11 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
 
         {/* Top Badges */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
-          <span className="px-2.5 py-0.5 rounded-full bg-navy-950/80 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider border border-white/10">
+          <span className="px-2.5 py-0.5 rounded-full bg-navy-950/80 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider border border-white/10">
             {vehicle.category}
           </span>
           {vehicle.isVerified && (
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-extrabold flex items-center gap-1 shadow-sm border border-emerald-400/30">
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-black flex items-center gap-1 shadow-sm border border-emerald-400/30">
               <ShieldCheck className="w-3 h-3" /> Verified Partner
             </span>
           )}
@@ -71,7 +70,7 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
         <button
           type="button"
           onClick={() => addToCompare(vehicle)}
-          className={`absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full text-xs font-bold backdrop-blur-md transition-all flex items-center gap-1 shadow-sm ${
+          className={`absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full text-xs font-bold backdrop-blur-md transition-all flex items-center gap-1 shadow-sm focus-ring ${
             inCompare
               ? 'bg-brand-orange text-white ring-2 ring-white shadow-brand-orange/30'
               : 'bg-white/90 text-slate-800 hover:bg-white hover:text-brand-orange'
@@ -97,12 +96,12 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
             <div className="text-xs font-bold text-slate-500 truncate flex items-center gap-1.5">
               <span>{vehicle.vendorId?.businessName || 'Local Rental Partner'}</span>
               {vehicle.vendorId?.isTopRated && (
-                <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
                   ★ TOP RATED
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-1 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-lg text-amber-950 font-black text-xs shrink-0">
+            <div className="flex items-center gap-1 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-xl text-amber-950 font-black text-xs shrink-0">
               <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
               <span>{Number(vehicle.rating || 4.8).toFixed(1)}</span>
               <span className="text-slate-400 font-medium text-[10px]">({vehicle.totalReviews || 12})</span>
@@ -110,7 +109,7 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
           </div>
 
           {/* Vehicle Name */}
-          <Link href={detailUrl} className="block group-hover:text-brand-orange transition-colors">
+          <Link href={detailUrl} className="block group-hover:text-brand-orange transition-colors focus-ring rounded-lg">
             <h3 className="font-extrabold text-slate-900 text-base leading-snug font-heading">
               {vehicle.brand} {vehicle.model}
             </h3>
@@ -123,16 +122,16 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
           <div className="grid grid-cols-2 gap-2 mt-3 text-[11px] text-slate-700 bg-slate-50/80 p-2.5 rounded-2xl border border-slate-100">
             <div className="flex items-center gap-1.5">
               <Fuel className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span className="font-medium truncate">{vehicle.fuelType} • {vehicle.transmission}</span>
+              <span className="font-semibold truncate">{vehicle.fuelType} • {vehicle.transmission}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Gauge className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span className="font-medium truncate">{vehicle.kmLimitPerDay ? `${vehicle.kmLimitPerDay} km/day` : 'Unlimited KM'}</span>
+              <span className="font-semibold truncate">{vehicle.kmLimitPerDay ? `${vehicle.kmLimitPerDay} km/day` : 'Unlimited KM'}</span>
             </div>
           </div>
 
           {/* Inclusions */}
-          <div className="flex flex-wrap gap-1.5 mt-3 text-[10px] font-bold">
+          <div className="flex flex-wrap gap-1.5 mt-3 text-[10px] font-extrabold">
             {vehicle.helmetIncluded && (
               <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/70">
                 <CheckCircle2 className="w-3 h-3 text-emerald-600" /> 1 Helmet Free
@@ -168,13 +167,13 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
           <div className="flex items-center gap-1.5">
             <Link
               href={detailUrl}
-              className="px-3 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold transition-all"
+              className="px-3 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-extrabold transition-all focus-ring"
             >
               Specs
             </Link>
             <Link
               href={bookingUrl}
-              className="px-4 py-2 rounded-xl bg-brand-orange hover:bg-brand-dark text-white font-extrabold text-xs transition-all shadow-md shadow-brand-orange/25 flex items-center gap-1 active:scale-95"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-brand-dark hover:to-brand-orange text-white font-extrabold text-xs transition-all shadow-md shadow-brand-orange/25 flex items-center gap-1 active:scale-95 focus-ring"
             >
               <span>Book</span>
               <ArrowRight className="w-3.5 h-3.5" />

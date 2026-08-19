@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Calendar, Clock, Car, Sparkles, Search, ChevronRight, Compass } from 'lucide-react';
+import { MapPin, Calendar, Clock, Search, Loader2 } from 'lucide-react';
 
 interface SearchWidgetProps {
   initialDestination?: string;
@@ -16,6 +16,7 @@ export const SearchWidget: React.FC<SearchWidgetProps> = ({
   className = '',
 }) => {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Tomorrow 09:00 to Day after tomorrow 20:00 default
   const defaultPickup = new Date();
@@ -53,6 +54,7 @@ export const SearchWidget: React.FC<SearchWidgetProps> = ({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     const pickupDateTime = `${pickupDate}T${pickupTime}:00`;
     const returnDateTime = `${returnDate}T${returnTime}:00`;
 
@@ -71,7 +73,9 @@ export const SearchWidget: React.FC<SearchWidgetProps> = ({
   };
 
   return (
-    <div className={`bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-slate-950/20 border border-white/60 p-5 sm:p-7 text-slate-900 ${className}`}>
+    <div
+      className={`glass-panel rounded-3xl shadow-2xl shadow-navy-950/25 border border-white/70 p-5 sm:p-7 text-slate-900 transition-all duration-300 ${className}`}
+    >
       {/* Category Filter Pills */}
       <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-5 border-b border-slate-100 no-scrollbar">
         {categories.map((c) => (
@@ -79,10 +83,10 @@ export const SearchWidget: React.FC<SearchWidgetProps> = ({
             key={c.id}
             type="button"
             onClick={() => setCategory(c.id)}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap active:scale-95 ${
+            className={`px-4 py-2 rounded-2xl text-xs font-extrabold transition-all flex items-center gap-1.5 whitespace-nowrap active:scale-95 focus-ring ${
               category === c.id
                 ? 'bg-navy-950 text-white shadow-md shadow-navy-950/20'
-                : 'bg-slate-100/80 hover:bg-slate-200/80 text-slate-700'
+                : 'bg-slate-100/90 hover:bg-slate-200 text-slate-700'
             }`}
           >
             <span>{c.icon}</span>
@@ -93,8 +97,8 @@ export const SearchWidget: React.FC<SearchWidgetProps> = ({
 
       <form onSubmit={handleSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Destination Picker */}
-        <div className="bg-slate-50 hover:bg-slate-100/90 p-3.5 rounded-2xl border border-slate-200/80 transition-colors">
-          <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
+        <div className="bg-slate-50/90 hover:bg-slate-100 p-3.5 rounded-2xl border border-slate-200/80 transition-all focus-within:border-brand-orange focus-within:ring-2 focus-within:ring-brand-orange/20">
+          <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
             <MapPin className="w-3.5 h-3.5 text-brand-orange" />
             Destination Hub
           </label>
@@ -112,8 +116,8 @@ export const SearchWidget: React.FC<SearchWidgetProps> = ({
         </div>
 
         {/* Pickup Date & Time */}
-        <div className="bg-slate-50 hover:bg-slate-100/90 p-3.5 rounded-2xl border border-slate-200/80 transition-colors">
-          <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
+        <div className="bg-slate-50/90 hover:bg-slate-100 p-3.5 rounded-2xl border border-slate-200/80 transition-all focus-within:border-brand-orange focus-within:ring-2 focus-within:ring-brand-orange/20">
+          <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5 text-brand-orange" />
             Pickup Date & Time
           </label>
@@ -123,20 +127,20 @@ export const SearchWidget: React.FC<SearchWidgetProps> = ({
               value={pickupDate}
               min={new Date().toISOString().split('T')[0]}
               onChange={(e) => setPickupDate(e.target.value)}
-              className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none w-full"
+              className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none w-full cursor-pointer"
             />
             <input
               type="time"
               value={pickupTime}
               onChange={(e) => setPickupTime(e.target.value)}
-              className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none w-20"
+              className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none w-20 cursor-pointer"
             />
           </div>
         </div>
 
         {/* Return Date & Time */}
-        <div className="bg-slate-50 hover:bg-slate-100/90 p-3.5 rounded-2xl border border-slate-200/80 transition-colors">
-          <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
+        <div className="bg-slate-50/90 hover:bg-slate-100 p-3.5 rounded-2xl border border-slate-200/80 transition-all focus-within:border-brand-orange focus-within:ring-2 focus-within:ring-brand-orange/20">
+          <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
             <Clock className="w-3.5 h-3.5 text-brand-orange" />
             Return Date & Time
           </label>
@@ -146,13 +150,13 @@ export const SearchWidget: React.FC<SearchWidgetProps> = ({
               value={returnDate}
               min={pickupDate}
               onChange={(e) => setReturnDate(e.target.value)}
-              className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none w-full"
+              className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none w-full cursor-pointer"
             />
             <input
               type="time"
               value={returnTime}
               onChange={(e) => setReturnTime(e.target.value)}
-              className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none w-20"
+              className="bg-transparent font-bold text-slate-900 text-xs focus:outline-none w-20 cursor-pointer"
             />
           </div>
         </div>
@@ -161,10 +165,20 @@ export const SearchWidget: React.FC<SearchWidgetProps> = ({
         <div className="flex items-center">
           <button
             type="submit"
-            className="w-full h-full min-h-[52px] px-6 py-3.5 rounded-2xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-brand-dark hover:to-brand-orange text-white font-extrabold text-sm shadow-xl shadow-brand-orange/30 flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 group"
+            disabled={isSubmitting}
+            className="w-full h-full min-h-[52px] px-6 py-3.5 rounded-2xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-brand-dark hover:to-brand-orange text-white font-black text-sm shadow-xl shadow-brand-orange/25 flex items-center justify-center gap-2 transition-all duration-200 hover:-translate-y-0.5 active:scale-95 group focus-ring disabled:opacity-80"
           >
-            <Search className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span>Search Verified Rides</span>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Finding Fleet...</span>
+              </>
+            ) : (
+              <>
+                <Search className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span>Search Verified Rides</span>
+              </>
+            )}
           </button>
         </div>
       </form>
