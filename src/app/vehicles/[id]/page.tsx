@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
@@ -25,6 +25,8 @@ import {
   User,
   Sparkles,
   MapPin,
+  Lock,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function VehicleDetailPage() {
@@ -44,7 +46,37 @@ export default function VehicleDetailPage() {
   defaultReturn.setDate(defaultReturn.getDate() + 2);
 
   const [pickupDate, setPickupDate] = useState(defaultPickup.toISOString().split('T')[0]);
+  const [pickupTime, setPickupTime] = useState('09:00');
   const [returnDate, setReturnDate] = useState(defaultReturn.toISOString().split('T')[0]);
+  const [returnTime, setReturnTime] = useState('20:00');
+
+  // Server-calculated pricing preview state
+  const [pricing, setPricing] = useState<any>(null);
+  const [priceLoading, setPriceLoading] = useState(false);
+
+  const fetchServerPricing = useCallback(async () => {
+    if (!vehicleId) return;
+    try {
+      setPriceLoading(true);
+      const query = new URLSearchParams({
+        vehicleId,
+        pickupDateTime: `${pickupDate}T${pickupTime}:00`,
+        returnDateTime: `${returnDate}T${returnTime}:00`,
+      });
+
+      const res = await fetch(`/api/pricing/calculate?${query.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.pricing) {
+          setPricing(data.pricing);
+        }
+      }
+    } catch (err) {
+      console.error('Pricing preview fetch error:', err);
+    } finally {
+      setPriceLoading(false);
+    }
+  }, [vehicleId, pickupDate, pickupTime, returnDate, returnTime]);
 
   useEffect(() => {
     const fetchVehicle = async () => {
@@ -63,8 +95,11 @@ export default function VehicleDetailPage() {
       }
     };
 
-    if (vehicleId) fetchVehicle();
-  }, [vehicleId]);
+    if (vehicleId) {
+      fetchVehicle();
+      fetchServerPricing();
+    }
+  }, [vehicleId, fetchServerPricing]);
 
   if (loading) {
     return (
@@ -96,7 +131,7 @@ export default function VehicleDetailPage() {
   const vendor = vehicle.vendorId || {};
   const destination = vehicle.destinationId || {};
 
-  const bookingUrl = `/book/${vehicle._id}?pickup=${pickupDate}T09:00:00&return=${returnDate}T20:00:00`;
+  const bookingUrl = `/book/${vehicle._id}?pickup=${pickupDate}T${pickupTime}:00&return=${returnDate}T${returnTime}:00`;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-28 lg:pb-12">
@@ -105,7 +140,7 @@ export default function VehicleDetailPage() {
         <ChevronLeft className="w-4 h-4" /> Back to All Fleet
       </Link>
 
-      {/* Main Grid: Gallery & Details on Left, Booking Box on Right */}
+      {/* Main Grid: Gallery & Details on Left, Sticky Booking Box on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Photos & Details */}
         <div className="lg:col-span-2 space-y-6">
@@ -314,7 +349,7 @@ export default function VehicleDetailPage() {
           </div>
         </div>
 
-        {/* Right Column: Sticky Booking Card (Desktop) */}
+        {/* Right Column: Sticky Booking Summary Card (Desktop) */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xl sticky top-24 space-y-5">
             <div className="flex items-baseline justify-between border-b border-slate-100 pb-4">
@@ -335,30 +370,85 @@ export default function VehicleDetailPage() {
             <div className="space-y-3 text-xs">
               <div>
                 <label className="block font-extrabold text-slate-700 mb-1 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-brand-orange" /> Pickup Date
+                  <Calendar className="w-3.5 h-3.5 text-brand-orange" /> Pickup Date & Time
                 </label>
-                <input
-                  type="date"
-                  value={pickupDate}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setPickupDate(e.target.value)}
-                  className="w-full p-3 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none bg-slate-50 focus:ring-2 focus:ring-brand-orange"
-                />
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    type="date"
+                    value={pickupDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => {
+                      setPickupDate(e.target.value);
+                      if (e.target.value > returnDate) setReturnDate(e.target.value);
+                    }}
+                    className="col-span-2 p-2.5 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none bg-slate-50 focus:ring-2 focus:ring-brand-orange text-xs"
+                  />
+                  <input
+                    type="time"
+                    value={pickupTime}
+                    onChange={(e) => setPickupTime(e.target.value)}
+                    className="p-2.5 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none bg-slate-50 focus:ring-2 focus:ring-brand-orange text-xs"
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block font-extrabold text-slate-700 mb-1 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-brand-orange" /> Return Date
+                  <Clock className="w-3.5 h-3.5 text-brand-orange" /> Return Date & Time
                 </label>
-                <input
-                  type="date"
-                  value={returnDate}
-                  min={pickupDate}
-                  onChange={(e) => setReturnDate(e.target.value)}
-                  className="w-full p-3 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none bg-slate-50 focus:ring-2 focus:ring-brand-orange"
-                />
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    type="date"
+                    value={returnDate}
+                    min={pickupDate}
+                    onChange={(e) => setReturnDate(e.target.value)}
+                    className="col-span-2 p-2.5 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none bg-slate-50 focus:ring-2 focus:ring-brand-orange text-xs"
+                  />
+                  <input
+                    type="time"
+                    value={returnTime}
+                    onChange={(e) => setReturnTime(e.target.value)}
+                    className="p-2.5 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none bg-slate-50 focus:ring-2 focus:ring-brand-orange text-xs"
+                  />
+                </div>
               </div>
             </div>
+
+            {/* Live Pricing Breakdown Preview */}
+            {pricing && (
+              <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200/80 space-y-2 text-xs">
+                <div className="flex justify-between text-slate-700">
+                  <span>Base Rental ({pricing.durationDays} days)</span>
+                  <span className="font-bold text-slate-900">{formatINR(pricing.basePrice)}</span>
+                </div>
+                {pricing.platformFee > 0 && (
+                  <div className="flex justify-between text-slate-700">
+                    <span>Platform Service Fee</span>
+                    <span className="font-bold text-slate-900">{formatINR(pricing.platformFee)}</span>
+                  </div>
+                )}
+                {pricing.gstAmount > 0 && (
+                  <div className="flex justify-between text-slate-700">
+                    <span>GST (18%)</span>
+                    <span className="font-bold text-slate-900">{formatINR(pricing.gstAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-emerald-700 pt-1 border-t border-slate-200 font-bold">
+                  <span className="flex items-center gap-1">
+                    <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                    Refundable Deposit
+                  </span>
+                  <span>{formatINR(pricing.securityDeposit)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-black text-navy-950 pt-2 border-t border-slate-200">
+                  <span>Estimated Total</span>
+                  <span className="text-brand-orange">{formatINR(pricing.totalPayable)}</span>
+                </div>
+                <p className="text-[10px] text-slate-500 italic pt-1">
+                  * {formatINR(pricing.securityDeposit)} security deposit is refundable and isolated from rental revenue.
+                </p>
+              </div>
+            )}
 
             {/* Direct Booking CTA */}
             <Link
@@ -383,7 +473,8 @@ export default function VehicleDetailPage() {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md p-4 border-t border-slate-200 shadow-2xl flex items-center justify-between gap-4">
         <div>
           <div className="text-xl font-black text-navy-950 font-heading">
-            {formatINR(vehicle.pricePerDay)} <span className="text-xs text-slate-500 font-bold">/ day</span>
+            {pricing ? formatINR(pricing.totalPayable) : formatINR(vehicle.pricePerDay)}
+            <span className="text-xs text-slate-500 font-normal"> {pricing ? 'total' : '/ day'}</span>
           </div>
           <div className="text-[10px] text-emerald-700 font-bold">
             + {formatINR(vehicle.securityDeposit)} Refundable Deposit

@@ -7,7 +7,19 @@ import VehicleCard from '@/components/marketplace/VehicleCard';
 import FilterSidebar from '@/components/marketplace/FilterSidebar';
 import { VehicleCardSkeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Car, Layers, Filter, Sparkles, AlertCircle, SlidersHorizontal, X } from 'lucide-react';
+import {
+  Car,
+  Layers,
+  Filter,
+  Sparkles,
+  AlertCircle,
+  SlidersHorizontal,
+  X,
+  MapPin,
+  Calendar,
+  ShieldCheck,
+  CheckCircle2,
+} from 'lucide-react';
 
 function VehiclesSearchContent() {
   const searchParams = useSearchParams();
@@ -82,10 +94,59 @@ function VehiclesSearchContent() {
     });
   };
 
+  const categories = [
+    { id: 'ALL', label: 'All Fleet', icon: '✨' },
+    { id: 'SCOOTER', label: 'Scooty', icon: '🛵' },
+    { id: 'MOTORCYCLE', label: 'Bikes', icon: '🏍️' },
+    { id: 'CAR', label: 'Self-Drive Cars', icon: '🚗' },
+    { id: 'EV', label: 'Electric EV', icon: '⚡' },
+  ];
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Top Search Widget in Compact Style */}
       <SearchWidget initialDestination={destinationParam} initialCategory={filters.category} />
+
+      {/* Explore Verified Rides Hero Banner */}
+      <div className="bg-gradient-to-r from-navy-950 via-navy-900 to-navy-950 rounded-3xl p-6 sm:p-8 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl border border-white/10 relative overflow-hidden">
+        <div className="space-y-2 relative z-10">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-orange/20 text-brand-orange text-xs font-bold border border-brand-orange/30">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>Explore Verified Rides</span>
+          </div>
+          <h1 className="font-black font-heading text-2xl sm:text-3xl capitalize">
+            Verified Fleet in {destinationParam}
+          </h1>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300 font-medium pt-1">
+            <span className="flex items-center gap-1">
+              <MapPin className="w-3.5 h-3.5 text-brand-orange" /> {destinationParam.toUpperCase()}
+            </span>
+            {pickupDateTime && returnDateTime && (
+              <span className="flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">
+                <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                {pickupDateTime.split('T')[0]} to {returnDateTime.split('T')[0]}
+              </span>
+            )}
+            <span className="text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-500/30">
+              {vehicles.length} Available Vehicles
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 relative z-10">
+          <button
+            type="button"
+            onClick={() => setMobileFilterOpen(true)}
+            className="lg:hidden px-4 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white text-xs font-extrabold flex items-center gap-2 backdrop-blur-md border border-white/20"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-brand-orange" />
+            <span>Filters & Sort</span>
+          </button>
+          <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-950/50 px-3.5 py-2 rounded-2xl border border-emerald-500/30">
+            <ShieldCheck className="w-4 h-4" /> 100% Escrow Deposit Isolation
+          </div>
+        </div>
+      </div>
 
       {/* Main Grid: Sidebar Filters + Vehicles Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -118,6 +179,7 @@ function VehiclesSearchContent() {
               </div>
               <div className="pt-4 border-t border-slate-100">
                 <button
+                  type="button"
                   onClick={() => setMobileFilterOpen(false)}
                   className="w-full py-3 bg-brand-orange text-white font-extrabold text-sm rounded-2xl shadow-md"
                 >
@@ -130,27 +192,23 @@ function VehiclesSearchContent() {
 
         {/* Right Vehicles Results */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Header summary & Mobile Filter Toggle */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm gap-4">
-            <div>
-              <h1 className="font-black font-heading text-navy-950 text-xl sm:text-2xl capitalize">
-                Verified Rental Rides in {destinationParam}
-              </h1>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Showing {vehicles.length} available vehicles from verified local partners
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
+          {/* Category Tabs Pill Bar */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+            {categories.map((c) => (
               <button
-                onClick={() => setMobileFilterOpen(true)}
-                className="lg:hidden px-3.5 py-2 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold flex items-center gap-1.5"
+                key={c.id}
+                type="button"
+                onClick={() => setFilters((prev) => ({ ...prev, category: c.id }))}
+                className={`px-4 py-2 rounded-2xl text-xs font-extrabold transition-all flex items-center gap-1.5 whitespace-nowrap active:scale-95 focus-ring ${
+                  filters.category === c.id
+                    ? 'bg-navy-950 text-white shadow-md shadow-navy-950/20'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/80'
+                }`}
               >
-                <SlidersHorizontal className="w-3.5 h-3.5" /> Filters
+                <span>{c.icon}</span>
+                <span>{c.label}</span>
               </button>
-              <div className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
-                100% Deposit Protection
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Vehicles Cards Grid */}
@@ -162,8 +220,8 @@ function VehiclesSearchContent() {
             </div>
           ) : vehicles.length === 0 ? (
             <EmptyState
-              title="No vehicles match your current filter"
-              description="Try expanding your price range or selecting all categories to view more verified local partner inventory."
+              title="No verified rides available for these dates"
+              description="Try modifying your rental dates, expanding your price filter, or switching categories to view more verified local partner inventory."
               actionText="Reset All Filters"
               onAction={handleResetFilters}
             />

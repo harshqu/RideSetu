@@ -41,6 +41,29 @@ export const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false);
+        setDestDropdownOpen(false);
+        setUserMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   const destinations = [
     { name: 'Rishikesh', slug: 'rishikesh', state: 'Uttarakhand', tag: 'Top Adventure' },
     { name: 'Mussoorie', slug: 'mussoorie', state: 'Uttarakhand', tag: 'Queen of Hills' },
@@ -126,7 +149,7 @@ export const Navbar: React.FC = () => {
             <Link
               href="/vehicles"
               className={`flex items-center gap-1.5 py-2 hover:text-brand-orange transition-colors focus-ring rounded-lg ${
-                pathname === '/vehicles' ? 'text-brand-orange' : ''
+                pathname === '/vehicles' ? 'text-brand-orange font-black' : ''
               }`}
             >
               <Car className="w-3.5 h-3.5" />
@@ -137,54 +160,82 @@ export const Navbar: React.FC = () => {
             <Link
               href="/compare"
               className={`flex items-center gap-1.5 py-2 hover:text-brand-orange transition-colors relative focus-ring rounded-lg ${
-                pathname === '/compare' ? 'text-brand-orange' : ''
+                pathname === '/compare' ? 'text-brand-orange font-black' : ''
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
               <span>Compare</span>
               {compareList.length > 0 && (
-                <span className="w-4 h-4 rounded-full bg-brand-orange text-white text-[9px] font-black flex items-center justify-center animate-pulse">
+                <span className="w-4 h-4 rounded-full bg-brand-orange text-white text-[10px] font-extrabold flex items-center justify-center -ml-0.5 shadow-sm">
                   {compareList.length}
                 </span>
               )}
             </Link>
 
-            <Link
-              href="/#how-it-works"
-              className="py-2 hover:text-brand-orange transition-colors focus-ring rounded-lg"
-            >
-              How It Works
-            </Link>
+            {user?.role === 'CUSTOMER' && (
+              <Link
+                href="/dashboard"
+                className={`flex items-center gap-1.5 py-2 hover:text-brand-orange transition-colors focus-ring rounded-lg ${
+                  pathname === '/dashboard' ? 'text-brand-orange font-black' : ''
+                }`}
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>My Dashboard</span>
+              </Link>
+            )}
+
+            {user?.role === 'VENDOR' && (
+              <Link
+                href="/vendor"
+                className={`flex items-center gap-1.5 py-2 hover:text-brand-orange transition-colors focus-ring rounded-lg ${
+                  pathname === '/vendor' ? 'text-brand-orange font-black' : ''
+                }`}
+              >
+                <Store className="w-3.5 h-3.5 text-amber-500" />
+                <span>Vendor Portal</span>
+              </Link>
+            )}
+
+            {user?.role === 'ADMIN' && (
+              <Link
+                href="/admin"
+                className={`flex items-center gap-1.5 py-2 hover:text-brand-orange transition-colors focus-ring rounded-lg ${
+                  pathname === '/admin' ? 'text-brand-orange font-black' : ''
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Admin Portal</span>
+              </Link>
+            )}
           </nav>
 
-          {/* Right Action Menu */}
+          {/* Desktop Right CTA / User Section */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
-              <div className="relative" onMouseLeave={() => setUserMenuOpen(false)}>
+              <div className="relative">
                 <button
                   type="button"
+                  aria-expanded={isUserMenuOpen}
                   onClick={() => setUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-xs focus-ring"
+                  className="flex items-center gap-2 p-1.5 pr-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors focus-ring"
                 >
-                  <Image
-                    src={user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'}
-                    alt={user.name}
-                    width={26}
-                    height={26}
-                    className="w-6 h-6 rounded-full object-cover ring-1 ring-slate-200"
-                  />
-                  <span className="font-bold text-slate-800 text-xs max-w-[100px] truncate">
-                    {user.name.split(' ')[0]}
-                  </span>
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                  <div className="w-7 h-7 rounded-xl bg-navy-950 text-white flex items-center justify-center font-bold text-xs">
+                    {user.name ? user.name[0].toUpperCase() : 'U'}
+                  </div>
+                  <div className="text-left text-xs">
+                    <span className="font-extrabold text-slate-800 block truncate max-w-[100px]">
+                      {user.name || 'Account'}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                 </button>
 
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 animate-fade-in-up z-50">
-                    <div className="px-3 py-2 border-b border-slate-100 mb-1">
-                      <div className="font-black text-slate-900 text-xs truncate font-heading">{user.name}</div>
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 animate-fade-in-up z-50">
+                    <div className="p-3 border-b border-slate-100 text-xs">
+                      <div className="font-extrabold text-slate-900 truncate">{user.name}</div>
                       <div className="text-[10px] text-slate-500 truncate">{user.email}</div>
-                      <span className="inline-block mt-1 text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                      <span className="inline-block mt-1 px-2 py-0.5 text-[9px] font-black rounded-full bg-brand-light text-brand-dark uppercase">
                         {user.role}
                       </span>
                     </div>
@@ -195,7 +246,7 @@ export const Navbar: React.FC = () => {
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl"
                       >
-                        <ShieldCheck className="w-4 h-4 text-emerald-600" /> Admin Console
+                        <ShieldCheck className="w-4 h-4 text-emerald-600" /> Master Admin
                       </Link>
                     ) : user.role === 'VENDOR' ? (
                       <>
@@ -267,7 +318,7 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex lg:hidden items-center gap-2">
             <button
               type="button"
               aria-label="Toggle Navigation Menu"
@@ -282,7 +333,7 @@ export const Navbar: React.FC = () => {
 
         {/* Mobile Dropdown Menu Drawer */}
         {isMobileMenuOpen && (
-          <div className="md:hidden bg-white border-b border-slate-200 px-4 py-5 space-y-4 animate-fade-in-up">
+          <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-5 space-y-4 animate-fade-in-up">
             <div className="font-black text-[10px] text-slate-400 uppercase tracking-wider">Destinations</div>
             <div className="grid grid-cols-2 gap-2">
               {destinations.map((d) => (
@@ -302,14 +353,18 @@ export const Navbar: React.FC = () => {
               <Link
                 href="/vehicles"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 p-2.5 rounded-2xl text-xs font-bold text-slate-800 hover:bg-slate-50"
+                className={`flex items-center gap-2 p-2.5 rounded-2xl text-xs font-bold ${
+                  pathname === '/vehicles' ? 'bg-brand-light text-brand-orange' : 'text-slate-800 hover:bg-slate-50'
+                }`}
               >
                 <Car className="w-4 h-4 text-brand-orange" /> Explore Vehicles
               </Link>
               <Link
                 href="/compare"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between p-2.5 rounded-2xl text-xs font-bold text-slate-800 hover:bg-slate-50"
+                className={`flex items-center justify-between p-2.5 rounded-2xl text-xs font-bold ${
+                  pathname === '/compare' ? 'bg-brand-light text-brand-orange' : 'text-slate-800 hover:bg-slate-50'
+                }`}
               >
                 <span className="flex items-center gap-2">
                   <Layers className="w-4 h-4 text-brand-orange" /> Compare Vehicles
