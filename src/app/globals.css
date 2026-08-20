@@ -30,6 +30,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html.dark,
+html.dark body {
+  background-color: #07101f;
+  color: #f8fafc;
+}
+
 *,
 *::before,
 *::after {

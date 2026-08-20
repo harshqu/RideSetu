@@ -43,6 +43,8 @@ export interface IVehicle {
     offSeasonPricePerDay?: number;
   };
   securityDeposit: number;
+  securityDepositEnabled?: boolean;
+  securityDepositAmount?: number;
   kmLimitPerDay: number; // e.g. 150 or 0 for unlimited
   excessKmCharge: number; // ₹/km
   isAvailable: boolean;
@@ -137,6 +139,8 @@ const VehicleSchema = new Schema<IVehicle>(
       offSeasonPricePerDay: { type: Number },
     },
     securityDeposit: { type: Number, required: true, default: 1000 },
+    securityDepositEnabled: { type: Boolean, default: true },
+    securityDepositAmount: { type: Number, default: 1000 },
     kmLimitPerDay: { type: Number, default: 150 }, // 0 = unlimited
     excessKmCharge: { type: Number, default: 4 }, // ₹ per km
     isAvailable: { type: Boolean, default: true, index: true },

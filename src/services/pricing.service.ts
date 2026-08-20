@@ -56,7 +56,10 @@ export class PricingService {
     const platformFee = 49;
 
     // Security deposit (strictly refundable, not platform revenue)
-    const securityDeposit = params.vehicle.securityDeposit ?? 1000;
+    let securityDeposit = 0;
+    if (params.vehicle.securityDepositEnabled !== false) {
+      securityDeposit = params.vehicle.securityDepositAmount ?? params.vehicle.securityDeposit ?? 1000;
+    }
 
     // Coupon discount calculation
     let discountAmount = 0;

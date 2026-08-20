@@ -56,6 +56,8 @@ export interface IBooking extends Document {
   platformFee: number;
   taxes: number; // GST 18% on platform + delivery + rental base
   securityDeposit: number; // Strictly refundable, NOT platform revenue
+  securityDepositEnabled?: boolean;
+  securityDepositAmount?: number;
   discountAmount: number;
   totalPayable: number;
   // Statuses
@@ -136,6 +138,8 @@ const BookingSchema = new Schema<IBooking>(
     platformFee: { type: Number, default: 49 },
     taxes: { type: Number, default: 0 },
     securityDeposit: { type: Number, required: true },
+    securityDepositEnabled: { type: Boolean, default: true },
+    securityDepositAmount: { type: Number, default: 1000 },
     discountAmount: { type: Number, default: 0 },
     totalPayable: { type: Number, required: true },
     depositStatus: {
