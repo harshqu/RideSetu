@@ -65,9 +65,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if ((vehicle as any).status !== 'ACTIVE' && (vehicle as any).status !== 'AVAILABLE') {
+    if ((vehicle as any).status !== 'APPROVED' || (vehicle as any).isAvailable === false) {
       return NextResponse.json(
-        { success: false, error: 'Selected vehicle is currently unavailable.' },
+        { success: false, error: 'Selected vehicle is no longer listed or currently available for rentals.' },
         { status: 400 }
       );
     }

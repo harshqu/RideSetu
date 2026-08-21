@@ -14,6 +14,7 @@
     "test:handover": "tsx src/scripts/test-handover-inspection.ts",
     "test:mobile-qa": "tsx src/scripts/test-final-mobile-qa.ts",
     "test:final-qa": "tsx src/scripts/test-final-production-qa.ts",
+    "test:checkout": "tsx src/scripts/test-checkout-flow.ts",
     "test:concurrency": "tsx src/scripts/test-concurrency.ts",
     "test:e2e": "tsx src/scripts/verify-e2e.ts"
   },

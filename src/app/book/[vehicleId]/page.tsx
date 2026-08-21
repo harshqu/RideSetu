@@ -79,6 +79,13 @@ function BookingFlowContent() {
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Reset scroll position to top whenever entering checkout or changing steps
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [step]);
+
   // Fetch Vehicle, Saved Locations, and KYC Status
   useEffect(() => {
     const fetchVehicle = async () => {
