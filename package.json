@@ -12,6 +12,8 @@
     "test:availability": "tsx src/scripts/test-availability-regression.ts",
     "test:fleet": "tsx src/scripts/test-vendor-fleet-listing.ts",
     "test:handover": "tsx src/scripts/test-handover-inspection.ts",
+    "test:mobile-qa": "tsx src/scripts/test-final-mobile-qa.ts",
+    "test:final-qa": "tsx src/scripts/test-final-production-qa.ts",
     "test:concurrency": "tsx src/scripts/test-concurrency.ts",
     "test:e2e": "tsx src/scripts/verify-e2e.ts"
   },
