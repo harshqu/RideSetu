@@ -15,7 +15,12 @@ export type PickupType =
 export type BookingStatus =
   | 'PENDING'
   | 'CONFIRMED'
+  | 'PRE_PICKUP'
+  | 'READY_FOR_HANDOVER'
+  | 'HANDED_OVER'
   | 'ACTIVE'
+  | 'RETURN_PENDING'
+  | 'RETURN_INSPECTION'
   | 'COMPLETED'
   | 'CANCELLED'
   | 'CANCELLED_BY_CUSTOMER'
@@ -153,7 +158,12 @@ const BookingSchema = new Schema<IBooking>(
       enum: [
         'PENDING',
         'CONFIRMED',
+        'PRE_PICKUP',
+        'READY_FOR_HANDOVER',
+        'HANDED_OVER',
         'ACTIVE',
+        'RETURN_PENDING',
+        'RETURN_INSPECTION',
         'COMPLETED',
         'CANCELLED',
         'CANCELLED_BY_CUSTOMER',
