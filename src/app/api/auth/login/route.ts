@@ -68,9 +68,23 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error: any) {
-    console.error('[API Auth Login Error]:', error);
+    console.error('[API Auth Login Error]: DATABASE_UNAVAILABLE', error);
+    const isDbError =
+      error.name?.includes('Mongo') ||
+      error.name?.includes('Mongoose') ||
+      error.message?.includes('connect') ||
+      error.message?.includes('whitelist') ||
+      error.message?.includes('SSL') ||
+      error.message?.includes('TLS');
+
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      {
+        success: false,
+        code: isDbError ? 'DATABASE_UNAVAILABLE' : 'AUTH_ERROR',
+        error: isDbError
+          ? 'RideSetu is temporarily unable to connect to its services. Please try again shortly.'
+          : 'Invalid login request. Please try again.',
+      },
       { status: 500 }
     );
   }

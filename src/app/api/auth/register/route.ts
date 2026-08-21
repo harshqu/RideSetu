@@ -83,8 +83,22 @@ export async function POST(request: Request) {
     return response;
   } catch (error: any) {
     console.error('[API Register Error]:', error);
+    const isDbError =
+      error.name?.includes('Mongo') ||
+      error.name?.includes('Mongoose') ||
+      error.message?.includes('connect') ||
+      error.message?.includes('whitelist') ||
+      error.message?.includes('SSL') ||
+      error.message?.includes('TLS');
+
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      {
+        success: false,
+        code: isDbError ? 'DATABASE_UNAVAILABLE' : 'REGISTER_ERROR',
+        error: isDbError
+          ? 'RideSetu is temporarily unable to connect to its services. Please try again shortly.'
+          : 'Registration failed. Please check your details and try again.',
+      },
       { status: 500 }
     );
   }
