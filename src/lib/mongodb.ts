@@ -40,7 +40,6 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
       dbName: 'ridesetu',
       serverSelectionTimeoutMS: 15000,
       bufferCommands: true,
-      autoSelectFamily: false,
     };
 
     cached.promise = mongoose.connect(uri, opts).then((m) => {
