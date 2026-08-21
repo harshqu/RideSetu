@@ -6,6 +6,8 @@ import { Vendor } from '@/models/Vendor';
 import { Destination } from '@/models/Destination';
 import { Booking } from '@/models/Booking';
 import { VehicleAvailability } from '@/models/VehicleAvailability';
+import { ReservationLock } from '@/models/ReservationLock';
+import { getAuthUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,12 +117,18 @@ export async function GET(request: Request) {
       const returnDate = new Date(returnDateTime);
 
       if (!isNaN(pickup.getTime()) && !isNaN(returnDate.getTime()) && returnDate > pickup) {
-        // Find vehicle IDs with overlapping bookings
-        const conflictingBookings = await Booking.find({
+        const user = await getAuthUser(request as any);
+        const bookingFilter: Record<string, any> = {
           bookingStatus: { $in: ['CONFIRMED', 'ACTIVE', 'PENDING'] },
           pickupDateTime: { $lt: returnDate },
           returnDateTime: { $gt: pickup },
-        }).select('vehicleId').lean();
+        };
+        if (user?.userId) {
+          bookingFilter.customerId = { $ne: new mongoose.Types.ObjectId(user.userId) };
+        }
+
+        // Find vehicle IDs with overlapping bookings
+        const conflictingBookings = await Booking.find(bookingFilter).select('vehicleId').lean();
 
         // Find vehicle IDs with overlapping maintenance / manual blocks
         const conflictingBlocks = await VehicleAvailability.find({
@@ -129,9 +137,23 @@ export async function GET(request: Request) {
           endDate: { $gt: pickup },
         }).select('vehicleId').lean();
 
+        // Find vehicle IDs with active unexpired reservation locks held by OTHER users
+        const lockFilter: Record<string, any> = {
+          status: 'HOLD',
+          expiresAt: { $gt: new Date() },
+          pickupDateTime: { $lt: returnDate },
+          returnDateTime: { $gt: pickup },
+        };
+        if (user?.userId) {
+          lockFilter.userId = { $ne: new mongoose.Types.ObjectId(user.userId) };
+        }
+
+        const conflictingLocks = await ReservationLock.find(lockFilter).select('vehicleId').lean();
+
         const unavailableVehicleIds = new Set([
           ...conflictingBookings.map((b) => b.vehicleId.toString()),
           ...conflictingBlocks.map((b) => b.vehicleId.toString()),
+          ...conflictingLocks.map((l) => l.vehicleId.toString()),
         ]);
 
         if (unavailableVehicleIds.size > 0) {

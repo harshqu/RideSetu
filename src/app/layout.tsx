@@ -2,12 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { CompareProvider } from '@/context/CompareContext';
-import DemoRoleBar from '@/components/common/DemoRoleBar';
-import Navbar from '@/components/common/Navbar';
-import CompareDrawer from '@/components/marketplace/CompareDrawer';
-import Footer from '@/components/common/Footer';
-import NetworkStatus from '@/components/common/NetworkStatus';
-import InstallPrompt from '@/components/pwa/InstallPrompt';
+import { ThemeProvider } from '@/context/ThemeContext';
+import LayoutWrapper from '@/components/layouts/LayoutWrapper';
 
 export const viewport: Viewport = {
   themeColor: '#FF6B00',
@@ -58,7 +54,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -68,17 +64,13 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen flex flex-col antialiased selection:bg-brand-orange selection:text-white">
-        <AuthProvider>
-          <CompareProvider>
-            <NetworkStatus />
-            <DemoRoleBar />
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <CompareDrawer />
-            <InstallPrompt />
-            <Footer />
-          </CompareProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <CompareProvider>
+              <LayoutWrapper>{children}</LayoutWrapper>
+            </CompareProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

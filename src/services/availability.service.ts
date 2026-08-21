@@ -6,6 +6,25 @@ import connectToDatabase from '@/lib/mongodb';
 
 export class AvailabilityService {
   /**
+   * Canonical interval overlap function:
+   * Requested range overlaps existing range if and only if:
+   * requestedStart < existingEnd AND requestedEnd > existingStart
+   */
+  public static intervalsOverlap(
+    requestedStart: Date | number,
+    requestedEnd: Date | number,
+    existingStart: Date | number,
+    existingEnd: Date | number
+  ): boolean {
+    const reqStart = typeof requestedStart === 'number' ? requestedStart : requestedStart.getTime();
+    const reqEnd = typeof requestedEnd === 'number' ? requestedEnd : requestedEnd.getTime();
+    const exStart = typeof existingStart === 'number' ? existingStart : existingStart.getTime();
+    const exEnd = typeof existingEnd === 'number' ? existingEnd : existingEnd.getTime();
+
+    return reqStart < exEnd && reqEnd > exStart;
+  }
+
+  /**
    * Lazy cleanup of expired reservation holds across the database
    */
   public static async cleanupExpiredHolds(): Promise<number> {
@@ -24,10 +43,10 @@ export class AvailabilityService {
   }
 
   /**
-   * Server-side availability checker implementing strict overlapping logic:
+   * Server-side availability checker implementing canonical overlapping logic:
    * Condition: requestedPickup < existingReturn AND requestedReturn > existingPickup
    *
-   * Supports excluding current customer/session to allow active checkouts to reuse their own hold.
+   * Supports excluding current customer/session to allow active checkouts to reuse their own hold/pending booking.
    */
   public static async isVehicleAvailable(
     params: {
@@ -65,7 +84,7 @@ export class AvailabilityService {
         ? new mongoose.Types.ObjectId(params.vehicleId)
         : params.vehicleId;
 
-    // 1. Check for overlapping Confirmed/Active Bookings
+    // 1. Check for overlapping Confirmed/Active/Pending Bookings
     const bookingQuery: Record<string, unknown> = {
       vehicleId: vehicleObjectId,
       bookingStatus: { $in: ['CONFIRMED', 'ACTIVE', 'PENDING'] },
@@ -80,6 +99,15 @@ export class AvailabilityService {
             ? new mongoose.Types.ObjectId(params.excludeBookingId)
             : params.excludeBookingId,
       };
+    }
+
+    // Exclude current customer's own pending/draft bookings from blocking their own availability checks
+    if (params.excludeUserId) {
+      const userOid =
+        typeof params.excludeUserId === 'string'
+          ? new mongoose.Types.ObjectId(params.excludeUserId)
+          : params.excludeUserId;
+      bookingQuery.customerId = { $ne: userOid };
     }
 
     const conflictingBooking = await Booking.findOne(bookingQuery, null, options).lean<IBooking>();
@@ -299,8 +327,6 @@ export class AvailabilityService {
     });
 
     // 5. Distributed race arbitration check:
-    // If multiple server instances concurrently inserted overlapping locks in the same millisecond,
-    // only the earliest inserted document retains the hold; all other concurrent entries are released.
     const overlappingLocks = await ReservationLock.find({
       vehicleId: vehicleObjectId,
       status: { $in: ['HOLD', 'CONFIRMED'] },
@@ -312,7 +338,6 @@ export class AvailabilityService {
       .lean<IReservationLock[]>();
 
     if (overlappingLocks.length > 1 && overlappingLocks[0]._id.toString() !== lock._id.toString()) {
-      // Another customer/instance created a lock slightly before ours; remove ours and reject safely
       await ReservationLock.findByIdAndDelete(lock._id);
       return {
         acquired: false,

@@ -18,6 +18,7 @@ import {
   Store,
   LogOut,
 } from 'lucide-react';
+import ThemeToggle from '@/components/common/ThemeToggle';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -75,8 +76,8 @@ export const Navbar: React.FC = () => {
       <header
         className={`sticky top-0 z-40 transition-all duration-300 ${
           isScrolled
-            ? 'bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-md shadow-navy-950/5 py-2.5'
-            : 'bg-white border-b border-slate-100 py-3.5'
+            ? 'bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200/90 dark:border-white/10 shadow-md shadow-navy-950/5 py-2.5'
+            : 'bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-white/10 py-3.5'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -87,21 +88,21 @@ export const Navbar: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xl font-black font-heading text-navy-950 tracking-tight">
+                <span className="text-xl font-black font-heading text-navy-950 dark:text-white tracking-tight">
                   Ride<span className="text-brand-orange">Setu</span>
                 </span>
-                <span className="text-[10px] uppercase font-black px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                <span className="text-[10px] uppercase font-black px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-500/30">
                   Verified
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500 font-medium tracking-wide -mt-0.5 hidden sm:block">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide -mt-0.5 hidden sm:block">
                 One Place. Every Ride. Every Destination.
               </p>
             </div>
           </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden lg:flex items-center gap-7 text-xs font-extrabold text-slate-700">
+          <nav className="hidden lg:flex items-center gap-7 text-xs font-extrabold text-slate-700 dark:text-slate-300">
             {/* Destination Dropdown */}
             <div className="relative" onMouseLeave={() => setDestDropdownOpen(false)}>
               <button
@@ -208,6 +209,7 @@ export const Navbar: React.FC = () => {
 
           {/* Desktop Right CTA / User Section */}
           <div className="hidden lg:flex items-center gap-3">
+            <ThemeToggle />
             {user ? (
               <div className="relative">
                 <button
@@ -295,8 +297,9 @@ export const Navbar: React.FC = () => {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button & Theme Toggle */}
           <div className="lg:hidden flex items-center gap-2">
+            <ThemeToggle />
             <button
               type="button"
               onClick={() => setMobileDrawerOpen(true)}

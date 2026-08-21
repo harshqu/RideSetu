@@ -21,14 +21,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
-    const saved = localStorage.getItem('ridesetu_theme') as ThemeMode;
+    const saved = (localStorage.getItem('ridesetu_theme') || localStorage.getItem('ridesetu-theme')) as ThemeMode;
     if (saved && ['light', 'dark', 'system'].includes(saved)) {
       setThemeState(saved);
+    } else {
+      setThemeState('light');
     }
   }, []);
 
   useEffect(() => {
     localStorage.setItem('ridesetu_theme', theme);
+    localStorage.setItem('ridesetu-theme', theme);
     const root = document.documentElement;
 
     if (theme === 'dark') {

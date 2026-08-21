@@ -18,6 +18,7 @@ import {
   Car,
   ChevronRight,
 } from 'lucide-react';
+import { getDestinationPhoto } from '@/lib/vehicle-images';
 
 export default function DestinationDetailPage() {
   const params = useParams();
@@ -77,7 +78,7 @@ export default function DestinationDetailPage() {
       {/* Destination Hero Banner */}
       <section className="relative h-[380px] sm:h-[460px] bg-navy-950 text-white flex items-end">
         <Image
-          src={destination.heroImage || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=1200&q=80'}
+          src={getDestinationPhoto(slug)}
           alt={destination.name}
           fill
           priority

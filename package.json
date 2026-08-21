@@ -9,7 +9,8 @@
     "lint": "next lint",
     "db:seed": "tsx src/scripts/seed.ts",
     "db:test": "tsx src/scripts/test-connection.ts",
-    "test:availability": "tsx src/scripts/test-availability.ts",
+    "test:availability": "tsx src/scripts/test-availability-regression.ts",
+    "test:fleet": "tsx src/scripts/test-vendor-fleet-listing.ts",
     "test:concurrency": "tsx src/scripts/test-concurrency.ts",
     "test:e2e": "tsx src/scripts/verify-e2e.ts"
   },

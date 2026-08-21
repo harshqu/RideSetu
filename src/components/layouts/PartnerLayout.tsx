@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { VendorGuard } from '@/components/common/RoleGuard';
+import ThemeToggle from '@/components/common/ThemeToggle';
 import {
   LayoutDashboard,
   Car,
@@ -17,13 +18,13 @@ import {
   Building2,
   Bell,
   HelpCircle,
-  LogOut,
   Menu,
   X,
   Compass,
+  LogOut,
   CheckCircle2,
-  AlertTriangle,
   Clock,
+  AlertTriangle,
   ShieldAlert,
 } from 'lucide-react';
 
@@ -42,12 +43,14 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
   const navItems = [
     { name: 'Overview', href: '/partner/dashboard', icon: LayoutDashboard },
     { name: 'Fleet Management', href: '/partner/fleet', icon: Car },
+    { name: 'Fleet Insights', href: '/partner/fleet/insights', icon: TrendingUp },
     { name: 'Bookings & Handovers', href: '/partner/bookings', icon: CalendarDays },
     { name: 'Schedule Calendar', href: '/partner/calendar', icon: CalendarDays },
     { name: 'Rider Customers', href: '/partner/customers', icon: Users },
     { name: 'Earnings Ledger', href: '/partner/earnings', icon: TrendingUp },
     { name: 'Payout Requests', href: '/partner/payouts', icon: Wallet },
     { name: 'Customer Reviews', href: '/partner/reviews', icon: Star },
+    { name: 'Safety & Incidents', href: '/partner/safety', icon: ShieldAlert },
     { name: 'Legal Documents', href: '/partner/documents', icon: FileCheck },
     { name: 'Business Profile', href: '/partner/profile', icon: Building2 },
     { name: 'Notifications', href: '/partner/notifications', icon: Bell },
@@ -56,46 +59,48 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
 
   return (
     <VendorGuard>
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col md:flex-row antialiased selection:bg-brand-orange selection:text-white">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row antialiased selection:bg-brand-orange selection:text-white transition-colors duration-150">
         {/* Sidebar for Desktop */}
-        <aside className="hidden md:flex flex-col w-64 bg-navy-950 border-r border-white/10 shrink-0 select-none">
+        <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-white/10 shrink-0 select-none">
           {/* Header */}
-          <div className="p-5 border-b border-white/10 flex items-center justify-between">
+          <div className="p-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
             <Link href="/partner/dashboard" className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-brand-orange flex items-center justify-center text-slate-950 font-black shadow-md shadow-amber-500/20">
-                <Car className="w-5 h-5" />
+                <Car className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="font-extrabold text-white text-base font-heading tracking-tight flex items-center gap-1">
-                  Ride<span className="text-amber-400">Setu</span>
-                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                <div className="font-extrabold text-slate-900 dark:text-white text-base font-heading tracking-tight flex items-center gap-1">
+                  Ride<span className="text-amber-500 dark:text-amber-400">Setu</span>
+                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                     Partner
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400 font-medium">B2B Mobility Portal</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">B2B Mobility Portal</p>
               </div>
             </Link>
           </div>
 
           {/* Business Profile Card */}
-          <div className="p-4 border-b border-white/10 bg-white/5 space-y-2">
-            <div className="font-extrabold text-xs text-white truncate">{businessName}</div>
+          <div className="p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 space-y-2">
+            <div className="font-extrabold text-xs text-slate-900 dark:text-white truncate">{businessName}</div>
             <div className="flex items-center justify-between text-[10px]">
               <span
                 className={`font-black uppercase px-2 py-0.5 rounded-md border flex items-center gap-1 ${
                   vendorStatus === 'VERIFIED'
-                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                     : vendorStatus === 'UNDER_REVIEW'
-                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                    : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                    ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                    : 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30'
                 }`}
               >
-                {vendorStatus === 'VERIFIED' && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
-                {vendorStatus === 'UNDER_REVIEW' && <Clock className="w-3 h-3 text-amber-400" />}
-                {vendorStatus === 'REJECTED' && <AlertTriangle className="w-3 h-3 text-rose-400" />}
+                {vendorStatus === 'VERIFIED' && <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />}
+                {vendorStatus === 'UNDER_REVIEW' && <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />}
+                {vendorStatus === 'REJECTED' && <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-400" />}
                 {vendorStatus}
               </span>
-              <span className="text-slate-400 font-semibold">Operator ID #{( (user as any)?.userId || (user as any)?._id || '849201' ).slice(-6)}</span>
+              <span className="text-slate-500 dark:text-slate-400 font-semibold">
+                Operator ID #{( (user as any)?.userId || (user as any)?._id || '849201' ).slice(-6)}
+              </span>
             </div>
           </div>
 
@@ -110,11 +115,11 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
                   href={item.href}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
                     isActive
-                      ? 'bg-gradient-to-r from-amber-500/20 to-brand-orange/20 text-amber-400 border border-amber-500/30 shadow-sm'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-extrabold border border-amber-500/30 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-amber-400' : 'text-slate-400'}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-amber-500 dark:text-amber-400' : 'text-slate-400'}`} />
                   <span>{item.name}</span>
                 </Link>
               );
@@ -122,17 +127,21 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
           </nav>
 
           {/* Footer / Sign Out */}
-          <div className="p-3 border-t border-white/10 bg-white/5 space-y-2">
+          <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 space-y-2">
+            <div className="flex items-center justify-between px-1 py-1">
+              <span className="text-[11px] font-extrabold text-slate-600 dark:text-slate-400">Theme</span>
+              <ThemeToggle />
+            </div>
             <Link
               href="/"
-              className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
             >
               <Compass className="w-4 h-4 text-brand-orange" /> Switch to Marketplace
             </Link>
             <button
               type="button"
               onClick={() => logout()}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors border border-rose-500/20"
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors border border-rose-500/20"
             >
               <LogOut className="w-4 h-4" /> Sign Out
             </button>
@@ -140,23 +149,26 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
         </aside>
 
         {/* Mobile Header */}
-        <header className="md:hidden bg-navy-950 border-b border-white/10 p-4 flex items-center justify-between sticky top-0 z-40">
+        <header className="md:hidden bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-white/10 p-4 flex items-center justify-between sticky top-0 z-40">
           <Link href="/partner/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 font-black flex items-center justify-center">
-              <Car className="w-4 h-4" />
+              <Car className="w-4 h-4 text-white" />
             </div>
-            <span className="font-extrabold text-white text-base font-heading">
-              Ride<span className="text-amber-400">Setu</span> Partner
+            <span className="font-extrabold text-slate-900 dark:text-white text-base font-heading">
+              Ride<span className="text-amber-500 dark:text-amber-400">Setu</span> Partner
             </span>
           </Link>
-          <button
-            type="button"
-            onClick={() => setMobileSidebarOpen(true)}
-            className="min-w-[44px] min-h-[44px] p-2 rounded-xl bg-white/10 text-white flex items-center justify-center"
-            aria-label="Open Partner Navigation"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(true)}
+              className="min-w-[44px] min-h-[44px] p-2 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white flex items-center justify-center border border-slate-200 dark:border-white/10"
+              aria-label="Open Partner Navigation"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          </div>
         </header>
 
         {/* Mobile Drawer */}
@@ -166,21 +178,21 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
               className="fixed inset-0 bg-black/75 backdrop-blur-sm"
               onClick={() => setMobileSidebarOpen(false)}
             />
-            <div className="relative ml-auto w-full max-w-xs bg-navy-950 h-full shadow-2xl flex flex-col justify-between overflow-y-auto z-10 p-4 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                <span className="font-black text-white text-sm font-heading">Partner Portal</span>
+            <div className="relative ml-auto w-full max-w-xs bg-white dark:bg-slate-950 h-full shadow-2xl flex flex-col justify-between overflow-y-auto z-10 p-4 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10">
+                <span className="font-black text-slate-900 dark:text-white text-sm font-heading">Partner Portal</span>
                 <button
                   type="button"
                   onClick={() => setMobileSidebarOpen(false)}
-                  className="min-w-[44px] min-h-[44px] p-2 text-slate-400 hover:text-white rounded-xl flex items-center justify-center"
+                  className="min-w-[44px] min-h-[44px] p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl flex items-center justify-center"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                <div className="font-bold text-xs text-white truncate">{businessName}</div>
-                <div className="text-[10px] text-amber-400 uppercase font-black">{vendorStatus}</div>
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 space-y-1">
+                <div className="font-bold text-xs text-slate-900 dark:text-white truncate">{businessName}</div>
+                <div className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-black">{vendorStatus}</div>
               </div>
 
               <nav className="space-y-1 text-xs font-bold flex-1">
@@ -194,25 +206,25 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
                       onClick={() => setMobileSidebarOpen(false)}
                       className={`flex items-center gap-3 px-3 min-h-[44px] rounded-xl transition-colors ${
                         isActive
-                          ? 'bg-amber-500/20 text-amber-400 font-extrabold border border-amber-500/30'
-                          : 'text-slate-300 hover:bg-white/5'
+                          ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold border border-amber-500/30'
+                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'
                       }`}
                     >
-                      <Icon className="w-4 h-4 text-amber-400" />
+                      <Icon className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                       <span>{item.name}</span>
                     </Link>
                   );
                 })}
               </nav>
 
-              <div className="pt-3 border-t border-white/10 space-y-2">
+              <div className="pt-3 border-t border-slate-200 dark:border-white/10 space-y-2">
                 <button
                   type="button"
                   onClick={() => {
                     setMobileSidebarOpen(false);
                     logout();
                   }}
-                  className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2 text-xs font-bold text-rose-400 bg-rose-500/10 rounded-xl border border-rose-500/20"
+                  className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 rounded-xl border border-rose-500/20"
                 >
                   <LogOut className="w-4 h-4" /> Sign Out
                 </button>
@@ -222,7 +234,7 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
         )}
 
         {/* Main Content Viewport */}
-        <main className="flex-1 bg-slate-900 min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 bg-slate-50 dark:bg-slate-900 min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto transition-colors duration-150">
           {children}
         </main>
       </div>
