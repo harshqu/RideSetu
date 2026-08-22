@@ -41,11 +41,11 @@ export default function OpsKycPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div className="border-b border-white/10 pb-4">
-        <h1 className="text-2xl font-black font-heading text-white flex items-center gap-2">
-          <FileText className="w-6 h-6 text-emerald-400" /> Customer KYC & Driving Licence Review Queue
+      <div className="border-b border-slate-200 pb-4">
+        <h1 className="text-2xl font-black font-heading text-slate-900 flex items-center gap-2">
+          <FileText className="w-6 h-6 text-emerald-600" /> Customer KYC & Driving License Review Queue
         </h1>
-        <p className="text-xs text-slate-400 font-medium mt-1">
+        <p className="text-xs text-slate-600 font-medium mt-1">
           Authorized verification queue for customer Driving Licences, identity documents, and motor category eligibility.
         </p>
       </div>
@@ -53,38 +53,38 @@ export default function OpsKycPage() {
       {loading ? (
         <DashboardSkeleton />
       ) : (
-        <div className="bg-slate-950/70 rounded-3xl border border-white/10 p-6 shadow-sm overflow-x-auto">
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-white/10 text-slate-400 font-extrabold uppercase text-[10px]">
-                <th className="pb-3">Rider Name</th>
-                <th className="pb-3">DL Number</th>
-                <th className="pb-3">DL Expiry</th>
-                <th className="pb-3">Vehicle Class</th>
-                <th className="pb-3">Status</th>
-                <th className="pb-3 text-right">Verification Actions</th>
+              <tr className="bg-slate-100 text-slate-900 font-extrabold uppercase text-[10px] border-b border-slate-200">
+                <th className="py-3 px-4 rounded-l-xl">Rider Name</th>
+                <th className="py-3 px-4">DL Number</th>
+                <th className="py-3 px-4">DL Expiry</th>
+                <th className="py-3 px-4">Vehicle Class</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 text-right rounded-r-xl">Verification Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-slate-200">
               {queue.map((item) => (
-                <tr key={item._id} className="hover:bg-white/5">
-                  <td className="py-3.5 font-bold text-white font-heading">{item.customerName || item.name}</td>
-                  <td className="py-3.5 font-mono text-emerald-400">{item.dlNumber || 'UK0720240012345'}</td>
-                  <td className="py-3.5 text-slate-300">2030-12-31</td>
-                  <td className="py-3.5 text-slate-400">MCWG / LMV</td>
-                  <td className="py-3.5"><StatusBadge status={item.kycStatus || 'UNDER_REVIEW'} size="sm" /></td>
-                  <td className="py-3.5 text-right space-x-2">
+                <tr key={item._id} className="hover:bg-amber-50/50 transition-colors">
+                  <td className="py-3.5 px-4 font-bold text-slate-900 font-heading">{item.customerName || item.name}</td>
+                  <td className="py-3.5 px-4 font-mono text-emerald-700 font-bold">{item.dlNumber || 'UK0720240012345'}</td>
+                  <td className="py-3.5 px-4 text-slate-700 font-medium">2030-12-31</td>
+                  <td className="py-3.5 px-4 text-slate-600 font-medium">MCWG / LMV</td>
+                  <td className="py-3.5 px-4"><StatusBadge status={item.kycStatus || 'UNDER_REVIEW'} size="sm" /></td>
+                  <td className="py-3.5 px-4 text-right space-x-2">
                     {item.kycStatus !== 'VERIFIED' && (
                       <>
                         <button
                           onClick={() => handleKycAction(item._id, 'APPROVE')}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-[11px]"
+                          className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] shadow-sm min-h-[36px]"
                         >
                           Approve DL
                         </button>
                         <button
                           onClick={() => handleKycAction(item._id, 'REJECT')}
-                          className="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold text-[11px]"
+                          className="px-3.5 py-1.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-300 font-bold text-[11px] min-h-[36px]"
                         >
                           Reject
                         </button>

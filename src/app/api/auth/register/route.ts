@@ -3,11 +3,33 @@ import connectToDatabase from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { Vendor } from '@/models/Vendor';
 import { hashPassword, signJwt, AUTH_COOKIE_NAME } from '@/lib/auth';
+import { OTPService } from '@/services/otp.service';
+import { AuditLog } from '@/models/AuditLog';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, phone, password, role = 'CUSTOMER', businessName, city, destinationId, rentalLicenseNumber } = body;
+    const {
+      name,
+      email,
+      phone,
+      password,
+      role = 'CUSTOMER',
+      signupChallengeId,
+      verificationMethod = 'EMAIL',
+      businessName,
+      city,
+      destinationId,
+      rentalLicenseNumber,
+    } = body;
+
+    // 1. Guard against public ADMIN registration attempts
+    if (role === 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Public registration for Admin accounts is strictly prohibited.' },
+        { status: 403 }
+      );
+    }
 
     if (!name || !email || !phone || !password) {
       return NextResponse.json(
@@ -16,26 +38,59 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!signupChallengeId || !['EMAIL', 'SMS'].includes(verificationMethod)) {
+      return NextResponse.json(
+        { error: 'Verified OTP signup challenge ID and verification method are required.' },
+        { status: 400 }
+      );
+    }
+
     await connectToDatabase();
 
-    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
-    if (existingUser) {
+    const normalizedEmail = OTPService.normalizeIdentifier(email, 'EMAIL');
+    const normalizedPhone = OTPService.normalizeIdentifier(phone, 'SMS');
+    const challengeTarget = verificationMethod === 'EMAIL' ? normalizedEmail : normalizedPhone;
+
+    // 2. Consume OTP Challenge Atomically
+    const challengeResult = await OTPService.consumeChallenge({
+      challengeId: signupChallengeId,
+      identifier: challengeTarget,
+      method: verificationMethod as 'EMAIL' | 'SMS',
+    });
+
+    if (!challengeResult.success) {
       return NextResponse.json(
-        { error: 'An account with this email already exists.' },
+        { error: challengeResult.error || 'Your email/mobile verification code has expired or is invalid. Please verify again.' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Duplicate Account Prevention across normalized email and mobile
+    const existingUser = await User.findOne({
+      $or: [{ email: normalizedEmail }, { phone: normalizedPhone }],
+    });
+
+    if (existingUser) {
+      const field = existingUser.email === normalizedEmail ? 'email address' : 'mobile number';
+      return NextResponse.json(
+        { error: `An account with this ${field} already exists. Please sign in.` },
         { status: 409 }
       );
     }
 
     const passwordHash = await hashPassword(password);
 
+    // 4. Create User Record
     const newUser = await User.create({
       name: name.trim(),
-      email: email.toLowerCase().trim(),
-      phone: phone.trim(),
+      email: normalizedEmail,
+      phone: normalizedPhone,
       passwordHash,
       role: role === 'VENDOR' ? 'VENDOR' : 'CUSTOMER',
       kycStatus: 'PENDING',
       drivingLicenseStatus: 'PENDING',
+      emailVerified: verificationMethod === 'EMAIL',
+      phoneVerified: verificationMethod === 'SMS',
     });
 
     let vendorId: string | undefined = undefined;
@@ -44,8 +99,8 @@ export async function POST(request: Request) {
         userId: newUser._id,
         businessName: businessName.trim(),
         ownerName: name.trim(),
-        email: email.toLowerCase().trim(),
-        phone: phone.trim(),
+        email: normalizedEmail,
+        phone: normalizedPhone,
         address: body.address || 'Local Office',
         city: city || 'Rishikesh',
         destinationId,
@@ -55,6 +110,20 @@ export async function POST(request: Request) {
       });
       vendorId = newVendor._id.toString();
     }
+
+    // Audit Logging
+    await AuditLog.create({
+      action: 'ACCOUNT_VERIFIED',
+      userId: newUser._id.toString(),
+      userRole: newUser.role,
+      resourceType: 'USER',
+      resourceId: newUser._id.toString(),
+      details: {
+        method: verificationMethod,
+        email: newUser.email,
+        phone: newUser.phone,
+      },
+    }).catch(() => {});
 
     const sessionPayload = {
       userId: newUser._id.toString(),
@@ -69,7 +138,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json({
       success: true,
       user: sessionPayload,
-      message: 'Registration successful.',
+      message: 'Registration and verification successful.',
     });
 
     response.cookies.set(AUTH_COOKIE_NAME, token, {

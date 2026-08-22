@@ -234,7 +234,14 @@ function BookingFlowContent() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to create payment order');
+        if (res.status === 500) {
+          throw new Error('RideSetu is temporarily unable to complete this booking. Please try again.');
+        }
+        if (res.status === 409 || data.code === 'OVERLAPPING_BOOKING' || data.code === 'ACTIVE_RESERVATION_LOCK') {
+          setIsDateAvailable(false);
+          setAvailabilityError(data.error || 'This vehicle is already reserved for the selected dates.');
+        }
+        throw new Error(data.error || 'Payment order initiation failed.');
       }
 
       setOrderData(data.order);

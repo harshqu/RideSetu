@@ -124,19 +124,19 @@ export default function PartnerFleetPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Title & Action Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h1 className="text-2xl font-black font-heading text-white flex items-center gap-2">
-            <Car className="w-6 h-6 text-amber-400" /> Fleet Management Workspace ({totalFleetCount})
+          <h1 className="text-2xl font-black font-heading text-slate-900 flex items-center gap-2">
+            <Car className="w-6 h-6 text-amber-600" /> Fleet Management Workspace ({totalFleetCount})
           </h1>
-          <p className="text-xs text-slate-400 font-medium mt-1">
+          <p className="text-xs text-slate-600 font-medium mt-1">
             Manage your verified scooters, motorcycles, and cars on the RideSetu Uttarakhand marketplace.
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={loadFleet}
-            className="p-2.5 rounded-xl bg-white/10 text-white text-xs font-bold hover:bg-white/20 transition-all flex items-center gap-1.5 min-h-[44px]"
+            className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-all flex items-center gap-1.5 min-h-[44px]"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </button>
@@ -145,7 +145,7 @@ export default function PartnerFleetPage() {
               setEditingVehicle(null);
               setIsAddModalOpen(true);
             }}
-            className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black transition-all flex items-center gap-1.5 shadow-lg shadow-amber-400/20 min-h-[44px]"
+            className="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-md shadow-orange-500/20 min-h-[44px]"
           >
             <Plus className="w-4 h-4" /> + Add New Vehicle
           </button>
@@ -154,41 +154,41 @@ export default function PartnerFleetPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-slate-950/70 p-4 rounded-2xl border border-white/10 space-y-1">
-          <span className="text-[10px] font-extrabold text-slate-400 uppercase">Total Inventory</span>
-          <div className="text-2xl font-black text-white font-heading">{totalFleetCount} Vehicles</div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-1 shadow-sm">
+          <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Total Inventory</span>
+          <div className="text-2xl font-black text-slate-900 font-heading">{totalFleetCount} Vehicles</div>
         </div>
-        <div className="bg-slate-950/70 p-4 rounded-2xl border border-emerald-500/30 space-y-1">
-          <span className="text-[10px] font-extrabold text-emerald-400 uppercase">Active Marketplace</span>
-          <div className="text-2xl font-black text-emerald-400 font-heading">{activeCount} Vehicles</div>
+        <div className="bg-white p-4 rounded-2xl border border-emerald-200 space-y-1 shadow-sm">
+          <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider">Active Marketplace</span>
+          <div className="text-2xl font-black text-emerald-700 font-heading">{activeCount} Vehicles</div>
         </div>
-        <div className="bg-slate-950/70 p-4 rounded-2xl border border-amber-400/30 space-y-1">
-          <span className="text-[10px] font-extrabold text-amber-400 uppercase">Under Review</span>
-          <div className="text-2xl font-black text-amber-400 font-heading">{reviewCount} Pending</div>
+        <div className="bg-white p-4 rounded-2xl border border-amber-200 space-y-1 shadow-sm">
+          <span className="text-[10px] font-extrabold text-amber-700 uppercase tracking-wider">Under Review</span>
+          <div className="text-2xl font-black text-amber-700 font-heading">{reviewCount} Pending</div>
         </div>
-        <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-700 space-y-1">
-          <span className="text-[10px] font-extrabold text-slate-400 uppercase">Unpublished Drafts</span>
-          <div className="text-2xl font-black text-slate-300 font-heading">{draftCount} Drafts</div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-1 shadow-sm">
+          <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Unpublished Drafts</span>
+          <div className="text-2xl font-black text-slate-700 font-heading">{draftCount} Drafts</div>
         </div>
       </div>
 
       {/* Notifications */}
       {errorMsg && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold flex items-center gap-2">
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           {errorMsg}
         </div>
       )}
 
       {actionSuccessMsg && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center gap-2">
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           {actionSuccessMsg}
         </div>
       )}
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto text-xs">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3 overflow-x-auto text-xs">
         {[
           { id: 'ALL', label: `All Fleet (${vehicles.length})` },
           { id: 'ACTIVE', label: `Active (${activeCount})` },
@@ -201,8 +201,8 @@ export default function PartnerFleetPage() {
             onClick={() => setStatusFilter(tab.id)}
             className={`px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition-all ${
               statusFilter === tab.id
-                ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-                : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             {tab.label}
@@ -215,32 +215,37 @@ export default function PartnerFleetPage() {
         <DashboardSkeleton />
       ) : filteredVehicles.length === 0 ? (
         <EmptyState
-          title="No vehicles match this filter"
-          description="List a new vehicle or adjust filter tabs to view your fleet."
+          title="No vehicles found in fleet"
+          description="Click '+ Add New Vehicle' above to list scooters, bikes, or cars for customer bookings."
+          actionText="Add Vehicle"
+          onAction={() => {
+            setEditingVehicle(null);
+            setIsAddModalOpen(true);
+          }}
         />
       ) : (
-        <div className="bg-slate-950/70 rounded-3xl border border-white/10 p-6 shadow-sm overflow-x-auto">
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-white/10 text-slate-400 font-extrabold uppercase text-[10px]">
-                <th className="pb-3">Vehicle Details</th>
-                <th className="pb-3">Category</th>
-                <th className="pb-3">Reg. Number</th>
-                <th className="pb-3">Daily Rate</th>
-                <th className="pb-3">Security Deposit</th>
-                <th className="pb-3">Status</th>
-                <th className="pb-3 text-right">Actions</th>
+              <tr className="bg-slate-100 text-slate-900 font-extrabold uppercase text-[10px] border-b border-slate-200">
+                <th className="py-3 px-4 rounded-l-xl">Vehicle Details</th>
+                <th className="py-3 px-4">Category</th>
+                <th className="py-3 px-4">Reg. Number</th>
+                <th className="py-3 px-4">Daily Rate</th>
+                <th className="py-3 px-4">Security Deposit</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 text-right rounded-r-xl">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-slate-200">
               {filteredVehicles.map((v) => {
                 const depositEnabled = v.securityDepositEnabled ?? true;
                 const depositAmt = depositEnabled ? (v.securityDepositAmount ?? v.securityDeposit ?? 1000) : 0;
 
                 return (
-                  <tr key={v._id} className="hover:bg-white/5 transition-all">
-                    <td className="py-4 flex items-center gap-3">
-                      <div className="w-14 h-10 rounded-xl bg-slate-900 relative overflow-hidden shrink-0 border border-white/10">
+                  <tr key={v._id} className="hover:bg-amber-50/50 transition-colors">
+                    <td className="py-4 px-4 flex items-center gap-3">
+                      <div className="w-14 h-10 rounded-xl bg-slate-100 relative overflow-hidden shrink-0 border border-slate-200">
                         <Image
                           src={v.images?.[0] || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=100&q=80'}
                           alt={v.model}
@@ -250,37 +255,37 @@ export default function PartnerFleetPage() {
                         />
                       </div>
                       <div>
-                        <span className="font-extrabold text-white text-sm font-heading block">
+                        <span className="font-extrabold text-slate-900 text-sm font-heading block">
                           {v.brand} {v.model}
                         </span>
-                        <span className="text-[11px] text-slate-400 font-medium">
+                        <span className="text-[11px] text-slate-500 font-medium">
                           {v.year} • {v.fuelType} • {v.transmission}
                         </span>
                       </div>
                     </td>
-                    <td className="py-4 font-semibold text-slate-300">{v.category}</td>
-                    <td className="py-4 font-mono font-bold text-amber-400">{v.registrationNumber || 'UK07-XX-0000'}</td>
-                    <td className="py-4 font-black text-white font-heading text-sm">{formatINR(v.pricePerDay)}/day</td>
-                    <td className="py-4">
+                    <td className="py-4 px-4 font-semibold text-slate-700">{v.category}</td>
+                    <td className="py-4 px-4 font-mono font-bold text-amber-700">{v.registrationNumber || 'UK07-XX-0000'}</td>
+                    <td className="py-4 px-4 font-black text-slate-900 font-heading text-sm">{formatINR(v.pricePerDay)}/day</td>
+                    <td className="py-4 px-4">
                       {depositEnabled ? (
-                        <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs">
+                        <span className="px-2.5 py-1 rounded-lg bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold text-xs">
                           {formatINR(depositAmt)}
                         </span>
                       ) : (
-                        <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 font-semibold text-xs">
+                        <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 font-semibold text-xs border border-slate-200">
                           ₹0 (No Deposit)
                         </span>
                       )}
                     </td>
-                    <td className="py-4">
+                    <td className="py-4 px-4">
                       <StatusBadge status={v.status || 'APPROVED'} size="sm" />
                     </td>
-                    <td className="py-4 text-right">
+                    <td className="py-4 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setPreviewVehicle(v)}
                           title="Preview Customer Listing"
-                          className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs inline-flex items-center gap-1 min-h-[44px]"
+                          className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs inline-flex items-center gap-1 min-h-[44px]"
                         >
                           <Eye className="w-3.5 h-3.5" /> Preview
                         </button>
@@ -290,7 +295,7 @@ export default function PartnerFleetPage() {
                             setIsAddModalOpen(true);
                           }}
                           title="Edit Vehicle Details"
-                          className="p-2 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 text-amber-400 font-bold text-xs inline-flex items-center gap-1 min-h-[44px]"
+                          className="p-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold text-xs inline-flex items-center gap-1 min-h-[44px] border border-amber-200"
                         >
                           <Edit className="w-3.5 h-3.5" /> Edit
                         </button>
@@ -298,8 +303,8 @@ export default function PartnerFleetPage() {
                           <button
                             onClick={() => handleTogglePause(v)}
                             title={v.isAvailable ? 'Pause Listing' : 'Resume Listing'}
-                            className={`p-2 rounded-xl text-xs font-bold inline-flex items-center gap-1 min-h-[44px] ${
-                              v.isAvailable ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400' : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400'
+                            className={`p-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-1 min-h-[44px] ${
+                              v.isAvailable ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
                             }`}
                           >
                             {v.isAvailable ? <PauseCircle className="w-3.5 h-3.5" /> : <PlayCircle className="w-3.5 h-3.5" />}
@@ -309,7 +314,7 @@ export default function PartnerFleetPage() {
                         <button
                           onClick={() => handleDeleteVehicle(v)}
                           title="Remove Vehicle"
-                          className="p-2 rounded-xl bg-white/5 hover:bg-rose-600 text-slate-400 hover:text-white transition-all min-h-[44px]"
+                          className="p-2.5 rounded-xl bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-600 transition-all min-h-[44px]"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

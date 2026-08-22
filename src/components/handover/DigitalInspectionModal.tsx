@@ -79,24 +79,48 @@ export const DigitalInspectionModal: React.FC<DigitalInspectionModalProps> = ({
     setSubmitting(true);
 
     try {
-      const res = await fetch(`/api/bookings/${bookingId}/handover`, {
+      const endpoint = handoverType === 'RETURN'
+        ? `/api/bookings/${bookingId}/return`
+        : `/api/bookings/${bookingId}/handover`;
+
+      const payload = handoverType === 'RETURN'
+        ? {
+            vehicleId,
+            returnOdometerReading: Number(odometerReading),
+            returnFuelBatteryLevel: Number(fuelBatteryLevel),
+            returnScratches: scratches,
+            returnPhotos: {
+              frontUrl: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
+              backUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
+              leftUrl: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
+              rightUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
+              meterUrl: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
+            },
+            vendorAgentName: 'Partner Representative',
+            remarks: remarks || `Digital RETURN inspection recorded by partner representative.`,
+          }
+        : {
+            vehicleId,
+            handoverType,
+            odometerReading: Number(odometerReading),
+            fuelBatteryLevel: Number(fuelBatteryLevel),
+            existingScratches: scratches,
+            helmetCount,
+            accessoriesGiven: accessories,
+            customerSignatureConfirmed,
+            remarks: remarks || `Digital ${handoverType} inspection recorded by partner representative.`,
+          };
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vehicleId,
-          handoverType,
-          odometerReading: Number(odometerReading),
-          fuelBatteryLevel: Number(fuelBatteryLevel),
-          existingScratches: scratches,
-          helmetCount,
-          accessoriesGiven: accessories,
-          customerSignatureConfirmed,
-          remarks: remarks || `Digital ${handoverType} inspection recorded by partner representative.`,
-        }),
+        body: JSON.stringify(payload),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        throw new Error('Failed to save inspection report');
+        throw new Error(data.error || `Failed to save ${handoverType.toLowerCase()} inspection report.`);
       }
 
       onInspectionComplete();

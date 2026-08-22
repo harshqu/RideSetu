@@ -2,7 +2,23 @@ import mongoose from 'mongoose';
 import { Booking, IBooking } from '@/models/Booking';
 import { VehicleAvailability, IVehicleAvailability } from '@/models/VehicleAvailability';
 import { ReservationLock, IReservationLock } from '@/models/ReservationLock';
+import { Vehicle, IVehicle } from '@/models/Vehicle';
+import { Vendor, IVendor } from '@/models/Vendor';
+import { Destination } from '@/models/Destination';
 import connectToDatabase from '@/lib/mongodb';
+
+export type ServiceabilityCode =
+  | 'OK'
+  | 'VEHICLE_NOT_FOUND'
+  | 'VEHICLE_NOT_APPROVED'
+  | 'VEHICLE_INACTIVE'
+  | 'VEHICLE_UNAVAILABLE'
+  | 'VENDOR_NOT_VERIFIED'
+  | 'VENDOR_INACTIVE'
+  | 'SERVICE_LOCATION_UNSUPPORTED'
+  | 'INVALID_DATE_RANGE'
+  | 'OVERLAPPING_BOOKING'
+  | 'ACTIVE_RESERVATION_LOCK';
 
 export class AvailabilityService {
   /**
@@ -193,6 +209,189 @@ export class AvailabilityService {
     }
 
     return { available: true };
+  }
+
+  /**
+   * Server-side canonical serviceability & availability validator:
+   * Evaluates vehicle lifecycle status, vendor verification status, destination status,
+   * pickup/return date range validity, and date interval overlap constraints in one unified method.
+   */
+  public static async validateVehicleServiceability(
+    params: {
+      vehicleId: string | mongoose.Types.ObjectId;
+      pickupDateTime?: Date | string;
+      returnDateTime?: Date | string;
+      excludeUserId?: string | mongoose.Types.ObjectId;
+      excludeBookingId?: string | mongoose.Types.ObjectId;
+      excludeReservationLockId?: string | mongoose.Types.ObjectId;
+      excludeSessionToken?: string;
+    },
+    options?: { session?: mongoose.ClientSession }
+  ): Promise<{
+    serviceable: boolean;
+    available: boolean;
+    code: ServiceabilityCode;
+    reason: string;
+    vehicle?: IVehicle | null;
+    vendor?: IVendor | null;
+    conflictingBooking?: IBooking | null;
+    conflictingBlock?: IVehicleAvailability | null;
+    conflictingLock?: IReservationLock | null;
+  }> {
+    await connectToDatabase();
+
+    const vehicleObjectId =
+      typeof params.vehicleId === 'string'
+        ? new mongoose.Types.ObjectId(params.vehicleId)
+        : params.vehicleId;
+
+    // 1. Load vehicle and populate vendor & destination
+    const vehicle = await Vehicle.findById(vehicleObjectId)
+      .populate('vendorId')
+      .populate('destinationId')
+      .lean<IVehicle>();
+
+    if (!vehicle) {
+      return {
+        serviceable: false,
+        available: false,
+        code: 'VEHICLE_NOT_FOUND',
+        reason: 'Vehicle not found or no longer listed.',
+      };
+    }
+
+    // 2. Validate Vehicle Lifecycle Status
+    if (vehicle.status !== 'APPROVED') {
+      const isDraftOrReview = vehicle.status === 'DRAFT' || vehicle.status === 'UNDER_REVIEW';
+      return {
+        serviceable: false,
+        available: false,
+        code: isDraftOrReview ? 'VEHICLE_NOT_APPROVED' : 'VEHICLE_INACTIVE',
+        reason: 'This vehicle is currently unavailable for booking.',
+        vehicle,
+      };
+    }
+
+    // 3. Validate Vehicle Availability & Verification Flags
+    if (vehicle.isAvailable === false || vehicle.isVerified === false) {
+      return {
+        serviceable: false,
+        available: false,
+        code: 'VEHICLE_UNAVAILABLE',
+        reason: 'This vehicle is currently unavailable for booking.',
+        vehicle,
+      };
+    }
+
+    // 4. Validate Vendor Status & Verification
+    const vendor = vehicle.vendorId as any;
+    if (vendor) {
+      if (vendor.verificationStatus !== 'VERIFIED') {
+        return {
+          serviceable: false,
+          available: false,
+          code: 'VENDOR_NOT_VERIFIED',
+          reason: 'This vehicle is currently unavailable for booking.',
+          vehicle,
+          vendor,
+        };
+      }
+      if (vendor.isActive === false || vendor.status === 'SUSPENDED') {
+        return {
+          serviceable: false,
+          available: false,
+          code: 'VENDOR_INACTIVE',
+          reason: 'This vehicle is currently unavailable for booking.',
+          vehicle,
+          vendor,
+        };
+      }
+    }
+
+    // 5. Validate Destination / Service Hub Status (if present)
+    const destination = vehicle.destinationId as any;
+    if (destination && destination.isActive === false) {
+      return {
+        serviceable: false,
+        available: false,
+        code: 'SERVICE_LOCATION_UNSUPPORTED',
+        reason: 'Rental services are temporarily inactive for this destination hub.',
+        vehicle,
+        vendor,
+      };
+    }
+
+    // 6. If dates are provided, validate pickup & return date range & interval availability
+    if (params.pickupDateTime && params.returnDateTime) {
+      const pickup = new Date(params.pickupDateTime);
+      const returnDate = new Date(params.returnDateTime);
+
+      if (isNaN(pickup.getTime()) || isNaN(returnDate.getTime())) {
+        return {
+          serviceable: true,
+          available: false,
+          code: 'INVALID_DATE_RANGE',
+          reason: 'Invalid pickup or return date format.',
+          vehicle,
+          vendor,
+        };
+      }
+
+      if (returnDate <= pickup) {
+        return {
+          serviceable: true,
+          available: false,
+          code: 'INVALID_DATE_RANGE',
+          reason: 'Return date & time must be after pickup date & time.',
+          vehicle,
+          vendor,
+        };
+      }
+
+      // Perform interval availability check using existing isVehicleAvailable logic
+      const availCheck = await AvailabilityService.isVehicleAvailable(
+        {
+          vehicleId: vehicle._id,
+          pickupDateTime: pickup,
+          returnDateTime: returnDate,
+          excludeUserId: params.excludeUserId,
+          excludeBookingId: params.excludeBookingId,
+          excludeReservationLockId: params.excludeReservationLockId,
+          excludeSessionToken: params.excludeSessionToken,
+        },
+        options
+      );
+
+      if (!availCheck.available) {
+        let code: ServiceabilityCode = 'OVERLAPPING_BOOKING';
+        if (availCheck.conflictingLock) {
+          code = 'ACTIVE_RESERVATION_LOCK';
+        } else if (availCheck.conflictingBlock) {
+          code = 'VEHICLE_UNAVAILABLE';
+        }
+
+        return {
+          serviceable: true,
+          available: false,
+          code,
+          reason: availCheck.reason || 'This vehicle is already reserved for the selected dates.',
+          vehicle,
+          vendor,
+          conflictingBooking: availCheck.conflictingBooking,
+          conflictingBlock: availCheck.conflictingBlock,
+          conflictingLock: availCheck.conflictingLock,
+        };
+      }
+    }
+
+    return {
+      serviceable: true,
+      available: true,
+      code: 'OK',
+      reason: 'Vehicle is serviceable and available for booking.',
+      vehicle,
+      vendor,
+    };
   }
 
   /**

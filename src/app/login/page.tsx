@@ -1,25 +1,56 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Compass, Store, ShieldCheck, ArrowRight } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPortalSelectionPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
+  // Auto-redirect authenticated users directly to their designated portal
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (user.role === 'VENDOR') {
+        router.replace('/partner/dashboard');
+      } else if (user.role === 'ADMIN') {
+        router.replace('/ops/dashboard');
+      } else {
+        router.replace('/dashboard');
+      }
+    }
+  }, [user, authLoading, router]);
+
+  if (authLoading || (user && !authLoading)) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 rounded-2xl bg-[#FF6B00] text-white flex items-center justify-center font-bold text-lg animate-pulse mx-auto">
+            RS
+          </div>
+          <p className="text-xs text-slate-400 font-bold animate-pulse">Redirecting to your authenticated portal...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 sm:p-6 text-white font-sans relative overflow-hidden">
       {/* Background glow effects */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-orange/10 blur-3xl rounded-full pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#FF6B00]/10 blur-3xl rounded-full pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
 
       <div className="max-w-4xl w-full space-y-8 relative z-10">
         {/* Brand Header */}
         <div className="text-center space-y-3">
           <Link href="/" className="inline-flex items-center gap-2.5 group">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-orange to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-orange/30 group-hover:scale-105 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF6B00] to-amber-500 flex items-center justify-center text-white shadow-lg shadow-[#FF6B00]/30 group-hover:scale-105 transition-transform">
               <Compass className="w-6 h-6 text-white" />
             </div>
             <span className="text-3xl font-black font-heading tracking-tight">
-              Ride<span className="text-brand-orange">Setu</span>
+              Ride<span className="text-[#FF6B00]">Setu</span>
             </span>
           </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold font-heading text-slate-100">
@@ -33,13 +64,13 @@ export default function LoginPortalSelectionPage() {
         {/* Portal Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* 1. RideSetu Customer */}
-          <div className="bg-slate-900/80 rounded-3xl border border-white/10 p-6 flex flex-col justify-between hover:border-brand-orange/50 transition-all hover:shadow-xl hover:shadow-brand-orange/10 group">
+          <div className="bg-slate-900/80 rounded-3xl border border-white/10 p-6 flex flex-col justify-between hover:border-[#FF6B00]/50 transition-all hover:shadow-xl hover:shadow-[#FF6B00]/10 group">
             <div className="space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-brand-orange/20 text-brand-orange flex items-center justify-center font-bold">
+              <div className="w-12 h-12 rounded-2xl bg-[#FF6B00]/20 text-[#FF6B00] flex items-center justify-center font-bold">
                 <Compass className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-lg font-black font-heading text-white group-hover:text-brand-orange transition-colors">
+                <h2 className="text-lg font-black font-heading text-white group-hover:text-[#FF6B00] transition-colors">
                   RideSetu Customer
                 </h2>
                 <p className="text-xs text-slate-400 mt-1 font-medium leading-relaxed">
@@ -49,7 +80,7 @@ export default function LoginPortalSelectionPage() {
             </div>
             <Link
               href="/login/customer"
-              className="mt-6 w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-brand-dark hover:to-brand-orange text-white text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-brand-orange/20 transition-all group-hover:gap-3"
+              className="mt-6 w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-[#FF6B00] to-amber-500 hover:from-amber-600 hover:to-[#FF6B00] text-white text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#FF6B00]/20 transition-all group-hover:gap-3"
             >
               <span>Continue as Customer</span>
               <ArrowRight className="w-4 h-4" />
@@ -103,10 +134,6 @@ export default function LoginPortalSelectionPage() {
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-        </div>
-
-        <div className="text-center text-[10px] text-slate-500 font-medium">
-          RideSetu Mobility Platform &copy; 2026. All rights reserved.
         </div>
       </div>
     </div>

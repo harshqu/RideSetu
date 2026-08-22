@@ -56,21 +56,33 @@ export async function POST(request: Request) {
 
     await connectToDatabase();
 
-    // 1. Vehicle Verification
-    const vehicle = await Vehicle.findById(vehicleId).populate('vendorId').lean();
-    if (!vehicle) {
+    // 1. Canonical Vehicle & Vendor Serviceability Validation
+    const serviceability = await AvailabilityService.validateVehicleServiceability({
+      vehicleId,
+      pickupDateTime,
+      returnDateTime,
+      excludeUserId: user.userId,
+    });
+
+    if (!serviceability.serviceable || !serviceability.available) {
+      const statusMap: Record<string, number> = {
+        VEHICLE_NOT_FOUND: 404,
+        OVERLAPPING_BOOKING: 409,
+        ACTIVE_RESERVATION_LOCK: 409,
+      };
+      const statusCode = statusMap[serviceability.code] || 400;
+
       return NextResponse.json(
-        { success: false, error: 'Vehicle not found.' },
-        { status: 404 }
+        {
+          success: false,
+          code: serviceability.code,
+          error: serviceability.reason || 'This vehicle is currently unavailable for booking.',
+        },
+        { status: statusCode }
       );
     }
 
-    if ((vehicle as any).status !== 'APPROVED' || (vehicle as any).isAvailable === false) {
-      return NextResponse.json(
-        { success: false, error: 'Selected vehicle is no longer listed or currently available for rentals.' },
-        { status: 400 }
-      );
-    }
+    const vehicle = serviceability.vehicle!;
 
     // 2. Server-Side Pricing Recalculation (NEVER TRUST FRONTEND AMOUNT)
     let coupon = null;
@@ -85,21 +97,6 @@ export async function POST(request: Request) {
       pickupType: pickupType || 'VENDOR_PICKUP',
       coupon: coupon as any,
     });
-
-    // 3. Availability Pre-check (Excluding current user's existing active reservation hold)
-    const avail = await AvailabilityService.isVehicleAvailable({
-      vehicleId,
-      pickupDateTime,
-      returnDateTime,
-      excludeUserId: user.userId,
-    });
-
-    if (!avail.available) {
-      return NextResponse.json(
-        { success: false, error: avail.reason || 'Vehicle is not available for selected dates.' },
-        { status: 409 }
-      );
-    }
 
     // 4. Idempotency & Stale Order Invalidation Check
     const activeKey = idempotencyKey || `idem_${user.userId}_${vehicleId}_${pickup.getTime()}_${returnDate.getTime()}`;

@@ -71,14 +71,18 @@ export class BookingService {
   }> {
     await connectToDatabase();
 
-    const vehicle = await Vehicle.findById(dto.vehicleId).lean<IVehicle>();
-    if (!vehicle) {
-      throw new Error('Vehicle not found or no longer listed.');
+    const serviceability = await AvailabilityService.validateVehicleServiceability({
+      vehicleId: dto.vehicleId,
+      pickupDateTime: dto.pickupDateTime,
+      returnDateTime: dto.returnDateTime,
+      excludeUserId: dto.customerId,
+    });
+
+    if (!serviceability.serviceable || !serviceability.available) {
+      throw new Error(serviceability.reason || 'This vehicle is currently unavailable for booking.');
     }
 
-    if (!vehicle.isAvailable || !vehicle.isVerified) {
-      throw new Error('This vehicle is currently unavailable for booking.');
-    }
+    const vehicle = serviceability.vehicle!;
 
     // Strict Server-Side Customer KYC & Driving Licence Validation
     if (dto.customerId) {

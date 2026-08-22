@@ -36,26 +36,6 @@
   --emerald-600: #059669;
 }
 
-html.dark {
-  --background: #07101f;
-  --foreground: #f8fafc;
-  --surface: #0d1728;
-  --surface-secondary: #16233a;
-  --surface-elevated: #16233a;
-  --border: #26364d;
-  --border-subtle: rgba(255, 255, 255, 0.15);
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --text-inverse: #0f172a;
-  --accent: #ff6b00;
-  --accent-hover: #ff8c38;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --info: #38bdf8;
-}
-
 html,
 body {
   width: 100%;
@@ -67,40 +47,6 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-html.dark,
-html.dark body {
-  background-color: #07101f;
-  color: #f8fafc;
-}
-
-html.dark .bg-white {
-  background-color: #0d1728;
-  color: #f8fafc;
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-html.dark .text-slate-900,
-html.dark .text-slate-800,
-html.dark .text-navy-950 {
-  color: #f8fafc;
-}
-
-html.dark .text-slate-700,
-html.dark .text-slate-600 {
-  color: #cbd5e1;
-}
-
-html.dark .bg-slate-50,
-html.dark .bg-slate-100 {
-  background-color: #16233a;
-  color: #f8fafc;
-}
-
-html.dark .border-slate-100,
-html.dark .border-slate-200 {
-  border-color: rgba(255, 255, 255, 0.1);
 }
 
 *,

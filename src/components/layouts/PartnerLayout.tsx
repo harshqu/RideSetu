@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { VendorGuard } from '@/components/common/RoleGuard';
-import ThemeToggle from '@/components/common/ThemeToggle';
 import {
   LayoutDashboard,
   Car,
@@ -59,46 +58,46 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
 
   return (
     <VendorGuard>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row antialiased selection:bg-brand-orange selection:text-white transition-colors duration-150">
-        {/* Sidebar for Desktop */}
-        <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-white/10 shrink-0 select-none">
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row antialiased selection:bg-brand-orange selection:text-white">
+        {/* ONE Desktop Sidebar */}
+        <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 shrink-0 select-none">
           {/* Header */}
-          <div className="p-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
+          <div className="p-5 border-b border-slate-200 flex items-center justify-between">
             <Link href="/partner/dashboard" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-brand-orange flex items-center justify-center text-slate-950 font-black shadow-md shadow-amber-500/20">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-brand-orange flex items-center justify-center text-white font-black shadow-md shadow-amber-500/20">
                 <Car className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="font-extrabold text-slate-900 dark:text-white text-base font-heading tracking-tight flex items-center gap-1">
-                  Ride<span className="text-amber-500 dark:text-amber-400">Setu</span>
-                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                <div className="font-extrabold text-slate-900 text-base font-heading tracking-tight flex items-center gap-1">
+                  Ride<span className="text-amber-600">Setu</span>
+                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-300">
                     Partner
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">B2B Mobility Portal</p>
+                <p className="text-[10px] text-slate-500 font-medium">B2B Mobility Portal</p>
               </div>
             </Link>
           </div>
 
           {/* Business Profile Card */}
-          <div className="p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 space-y-2">
-            <div className="font-extrabold text-xs text-slate-900 dark:text-white truncate">{businessName}</div>
+          <div className="p-4 border-b border-slate-200 bg-slate-50 space-y-2">
+            <div className="font-extrabold text-xs text-slate-900 truncate">{businessName}</div>
             <div className="flex items-center justify-between text-[10px]">
               <span
                 className={`font-black uppercase px-2 py-0.5 rounded-md border flex items-center gap-1 ${
                   vendorStatus === 'VERIFIED'
-                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                    ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
                     : vendorStatus === 'UNDER_REVIEW'
-                    ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                    : 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                    ? 'bg-amber-100 text-amber-700 border-amber-300'
+                    : 'bg-rose-100 text-rose-700 border-rose-300'
                 }`}
               >
-                {vendorStatus === 'VERIFIED' && <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />}
-                {vendorStatus === 'UNDER_REVIEW' && <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />}
-                {vendorStatus === 'REJECTED' && <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-400" />}
+                {vendorStatus === 'VERIFIED' && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                {vendorStatus === 'UNDER_REVIEW' && <Clock className="w-3 h-3 text-amber-600" />}
+                {vendorStatus === 'REJECTED' && <AlertTriangle className="w-3 h-3 text-rose-600" />}
                 {vendorStatus}
               </span>
-              <span className="text-slate-500 dark:text-slate-400 font-semibold">
+              <span className="text-slate-500 font-semibold">
                 Operator ID #{( (user as any)?.userId || (user as any)?._id || '849201' ).slice(-6)}
               </span>
             </div>
@@ -115,11 +114,11 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
                   href={item.href}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
                     isActive
-                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-extrabold border border-amber-500/30 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
+                      ? 'bg-amber-50 text-amber-700 font-extrabold border border-amber-300 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-amber-500 dark:text-amber-400' : 'text-slate-400'}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-amber-600' : 'text-slate-400'}`} />
                   <span>{item.name}</span>
                 </Link>
               );
@@ -127,21 +126,17 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
           </nav>
 
           {/* Footer / Sign Out */}
-          <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 space-y-2">
-            <div className="flex items-center justify-between px-1 py-1">
-              <span className="text-[11px] font-extrabold text-slate-600 dark:text-slate-400">Theme</span>
-              <ThemeToggle />
-            </div>
+          <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2">
             <Link
               href="/"
-              className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors"
             >
               <Compass className="w-4 h-4 text-brand-orange" /> Switch to Marketplace
             </Link>
             <button
               type="button"
               onClick={() => logout()}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors border border-rose-500/20"
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-rose-200"
             >
               <LogOut className="w-4 h-4" /> Sign Out
             </button>
@@ -149,50 +144,47 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
         </aside>
 
         {/* Mobile Header */}
-        <header className="md:hidden bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-white/10 p-4 flex items-center justify-between sticky top-0 z-40">
+        <header className="md:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between sticky top-0 z-40">
           <Link href="/partner/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 font-black flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-amber-500 text-white font-black flex items-center justify-center">
               <Car className="w-4 h-4 text-white" />
             </div>
-            <span className="font-extrabold text-slate-900 dark:text-white text-base font-heading">
-              Ride<span className="text-amber-500 dark:text-amber-400">Setu</span> Partner
+            <span className="font-extrabold text-slate-900 text-base font-heading">
+              Ride<span className="text-amber-600">Setu</span> Partner
             </span>
           </Link>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <button
-              type="button"
-              onClick={() => setMobileSidebarOpen(true)}
-              className="min-w-[44px] min-h-[44px] p-2 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white flex items-center justify-center border border-slate-200 dark:border-white/10"
-              aria-label="Open Partner Navigation"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setMobileSidebarOpen(true)}
+            className="min-w-[44px] min-h-[44px] p-2 rounded-xl bg-slate-100 text-slate-900 flex items-center justify-center border border-slate-200"
+            aria-label="Open Partner Navigation"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
         </header>
 
         {/* Mobile Drawer */}
         {isMobileSidebarOpen && (
           <div className="fixed inset-0 z-50 md:hidden flex">
             <div
-              className="fixed inset-0 bg-black/75 backdrop-blur-sm"
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
               onClick={() => setMobileSidebarOpen(false)}
             />
-            <div className="relative ml-auto w-full max-w-xs bg-white dark:bg-slate-950 h-full shadow-2xl flex flex-col justify-between overflow-y-auto z-10 p-4 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10">
-                <span className="font-black text-slate-900 dark:text-white text-sm font-heading">Partner Portal</span>
+            <div className="relative ml-auto w-full max-w-xs bg-white h-full shadow-2xl flex flex-col justify-between overflow-y-auto z-10 p-4 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                <span className="font-black text-slate-900 text-sm font-heading">Partner Portal</span>
                 <button
                   type="button"
                   onClick={() => setMobileSidebarOpen(false)}
-                  className="min-w-[44px] min-h-[44px] p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl flex items-center justify-center"
+                  className="min-w-[44px] min-h-[44px] p-2 text-slate-400 hover:text-slate-900 rounded-xl flex items-center justify-center"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 space-y-1">
-                <div className="font-bold text-xs text-slate-900 dark:text-white truncate">{businessName}</div>
-                <div className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-black">{vendorStatus}</div>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                <div className="font-bold text-xs text-slate-900 truncate">{businessName}</div>
+                <div className="text-[10px] text-amber-600 uppercase font-black">{vendorStatus}</div>
               </div>
 
               <nav className="space-y-1 text-xs font-bold flex-1">
@@ -206,25 +198,25 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
                       onClick={() => setMobileSidebarOpen(false)}
                       className={`flex items-center gap-3 px-3 min-h-[44px] rounded-xl transition-colors ${
                         isActive
-                          ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold border border-amber-500/30'
-                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'
+                          ? 'bg-amber-50 text-amber-700 font-extrabold border border-amber-300'
+                          : 'text-slate-700 hover:bg-slate-100'
                       }`}
                     >
-                      <Icon className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                      <Icon className="w-4 h-4 text-amber-600" />
                       <span>{item.name}</span>
                     </Link>
                   );
                 })}
               </nav>
 
-              <div className="pt-3 border-t border-slate-200 dark:border-white/10 space-y-2">
+              <div className="pt-3 border-t border-slate-200 space-y-2">
                 <button
                   type="button"
                   onClick={() => {
                     setMobileSidebarOpen(false);
                     logout();
                   }}
-                  className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 rounded-xl border border-rose-500/20"
+                  className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2 text-xs font-bold text-rose-600 bg-rose-50 rounded-xl border border-rose-200"
                 >
                   <LogOut className="w-4 h-4" /> Sign Out
                 </button>
@@ -234,7 +226,7 @@ export const PartnerLayout: React.FC<PartnerLayoutProps> = ({ children }) => {
         )}
 
         {/* Main Content Viewport */}
-        <main className="flex-1 bg-slate-50 dark:bg-slate-900 min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto transition-colors duration-150">
+        <main className="flex-1 bg-slate-50 min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto">
           {children}
         </main>
       </div>

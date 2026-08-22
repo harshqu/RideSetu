@@ -20,6 +20,21 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
     }
 
+    const hasName = Boolean(user.name && user.name.trim());
+    const hasVerifiedEmail = Boolean(user.email && user.emailVerified);
+    const hasVerifiedPhone = Boolean(user.phone && user.phoneVerified);
+    const hasEmergencyContact = Boolean(
+      user.emergencyContact && user.emergencyContact.name && user.emergencyContact.phone
+    );
+
+    let completionScore = 0;
+    if (hasName) completionScore += 25;
+    if (hasVerifiedEmail) completionScore += 25;
+    if (hasVerifiedPhone) completionScore += 25;
+    if (hasEmergencyContact) completionScore += 25;
+
+    const isGoogleAccount = Array.isArray(user.authProviders) && user.authProviders.includes('GOOGLE');
+
     const safeProfile = {
       _id: user._id,
       name: user.name,
@@ -33,8 +48,11 @@ export async function GET(request: Request) {
       drivingLicenseStatus: user.drivingLicenseStatus || 'NOT_STARTED',
       emailVerified: Boolean(user.emailVerified),
       phoneVerified: Boolean(user.phoneVerified),
+      isGoogleAccount,
+      googleEmail: user.googleEmail || '',
       dateOfBirth: user.dateOfBirth || null,
       emergencyContact: user.emergencyContact || { name: '', phone: '', relation: '' },
+      profileCompletionPercentage: completionScore,
       createdAt: user.createdAt,
     };
 
@@ -70,7 +88,6 @@ export async function PATCH(request: Request) {
       auditChanges.oldName = user.name;
       auditChanges.newName = name.trim();
       updateFields.name = name.trim();
-      // If customer was verified, changing legal name requires re-verification
       if (user.kycStatus === 'VERIFIED') {
         kycInvalidated = true;
       }
@@ -106,7 +123,6 @@ export async function PATCH(request: Request) {
     // Email change requires re-verification
     if (email && email.trim().toLowerCase() !== user.email) {
       const cleanEmail = email.trim().toLowerCase();
-      // Check if email already in use
       const existingUser = await User.findOne({ email: cleanEmail, _id: { $ne: uObjectId } });
       if (existingUser) {
         return NextResponse.json({ error: 'This email address is already in use by another account.' }, { status: 400 });
@@ -129,7 +145,6 @@ export async function PATCH(request: Request) {
       updateFields.drivingLicenseStatus = 'ACTION_REQUIRED';
       auditChanges.kycStatusTransition = 'ACTION_REQUIRED (Identity attribute altered)';
 
-      // Mark latest KYC record as requiring reverification
       await KYCVerification.updateMany(
         { userId: uObjectId, status: 'VERIFIED' },
         {
@@ -144,7 +159,6 @@ export async function PATCH(request: Request) {
 
     const updatedUser = await User.findByIdAndUpdate(uObjectId, { $set: updateFields }, { new: true }).lean();
 
-    // Create AuditLog record
     await AuditLog.create({
       action: 'CUSTOMER_PROFILE_UPDATED',
       userId: uObjectId,
@@ -153,6 +167,19 @@ export async function PATCH(request: Request) {
       resourceId: session.userId,
       details: auditChanges,
     });
+
+    const hasName = Boolean(updatedUser?.name && updatedUser.name.trim());
+    const hasVerifiedEmail = Boolean(updatedUser?.email && updatedUser.emailVerified);
+    const hasVerifiedPhone = Boolean(updatedUser?.phone && updatedUser.phoneVerified);
+    const hasEmergencyContact = Boolean(
+      updatedUser?.emergencyContact && updatedUser.emergencyContact.name && updatedUser.emergencyContact.phone
+    );
+
+    let completionScore = 0;
+    if (hasName) completionScore += 25;
+    if (hasVerifiedEmail) completionScore += 25;
+    if (hasVerifiedPhone) completionScore += 25;
+    if (hasEmergencyContact) completionScore += 25;
 
     return NextResponse.json({
       success: true,
@@ -171,6 +198,7 @@ export async function PATCH(request: Request) {
         phoneVerified: updatedUser?.phoneVerified,
         emergencyContact: updatedUser?.emergencyContact,
         dateOfBirth: updatedUser?.dateOfBirth,
+        profileCompletionPercentage: completionScore,
       },
     });
   } catch (error: any) {

@@ -27,12 +27,12 @@ export default function OpsCustomersPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div className="border-b border-white/10 pb-4 flex items-center justify-between">
+      <div className="border-b border-slate-200 pb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black font-heading text-white flex items-center gap-2">
-            <Users className="w-6 h-6 text-emerald-400" /> Customer Account & Identity Registry
+          <h1 className="text-2xl font-black font-heading text-slate-900 flex items-center gap-2">
+            <Users className="w-6 h-6 text-emerald-600" /> Customer Account & Identity Registry
           </h1>
-          <p className="text-xs text-slate-400 font-medium mt-1">
+          <p className="text-xs text-slate-600 font-medium mt-1">
             Authorized administrative management for rider accounts, KYC statuses, and licence verifications.
           </p>
         </div>
@@ -41,25 +41,25 @@ export default function OpsCustomersPage() {
       {loading ? (
         <DashboardSkeleton />
       ) : (
-        <div className="bg-slate-950/70 rounded-3xl border border-white/10 p-6 shadow-sm overflow-x-auto">
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-white/10 text-slate-400 font-extrabold uppercase text-[10px]">
-                <th className="pb-3">Customer Name</th>
-                <th className="pb-3">Phone</th>
-                <th className="pb-3">Email</th>
-                <th className="pb-3">DL Number</th>
-                <th className="pb-3">KYC Status</th>
+              <tr className="bg-slate-100 text-slate-900 font-extrabold uppercase text-[10px] border-b border-slate-200">
+                <th className="py-3 px-4 rounded-l-xl">Customer Name</th>
+                <th className="py-3 px-4">Phone</th>
+                <th className="py-3 px-4">Email</th>
+                <th className="py-3 px-4">DL Number</th>
+                <th className="py-3 px-4 text-right rounded-r-xl">KYC Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-slate-200">
               {customers.map((c) => (
-                <tr key={c._id} className="hover:bg-white/5">
-                  <td className="py-3.5 font-bold text-white font-heading">{c.name || c.customerName}</td>
-                  <td className="py-3.5 font-mono text-slate-300">{c.phone || '+91 98765 43210'}</td>
-                  <td className="py-3.5 text-slate-400">{c.email || 'rider@example.com'}</td>
-                  <td className="py-3.5 font-mono font-bold text-emerald-400">{c.dlNumber || 'UK0720240012345'}</td>
-                  <td className="py-3.5"><StatusBadge status={c.kycStatus || 'VERIFIED'} size="sm" /></td>
+                <tr key={c._id} className="hover:bg-amber-50/50 transition-colors">
+                  <td className="py-3.5 px-4 font-bold text-slate-900 font-heading">{c.name || c.customerName}</td>
+                  <td className="py-3.5 px-4 font-mono text-slate-700 font-medium">{c.phone || '+91 98765 43210'}</td>
+                  <td className="py-3.5 px-4 text-slate-600 font-medium">{c.email || 'rider@example.com'}</td>
+                  <td className="py-3.5 px-4 font-mono font-bold text-emerald-700">{c.dlNumber || 'UK0720240012345'}</td>
+                  <td className="py-3.5 px-4 text-right"><StatusBadge status={c.kycStatus || 'VERIFIED'} size="sm" /></td>
                 </tr>
               ))}
             </tbody>

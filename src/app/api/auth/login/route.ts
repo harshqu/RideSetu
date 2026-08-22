@@ -3,6 +3,7 @@ import connectToDatabase from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { Vendor } from '@/models/Vendor';
 import { comparePassword, signJwt, AUTH_COOKIE_NAME } from '@/lib/auth';
+import { OTPService } from '@/services/otp.service';
 
 export async function POST(request: Request) {
   try {
@@ -17,7 +18,9 @@ export async function POST(request: Request) {
 
     await connectToDatabase();
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const normalizedEmail = OTPService.normalizeIdentifier(email, 'EMAIL');
+    const user = await User.findOne({ email: normalizedEmail });
+
     if (!user) {
       return NextResponse.json(
         { error: 'Invalid email or password.' },
@@ -30,6 +33,21 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Invalid email or password.' },
         { status: 401 }
+      );
+    }
+
+    // Unverified Account Guard (Skip for ADMIN to preserve existing admin provisioning)
+    if (user.role !== 'ADMIN' && !user.emailVerified && !user.phoneVerified) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'UNVERIFIED_ACCOUNT',
+          error: 'Please verify your account before signing in.',
+          unverified: true,
+          email: user.email,
+          phone: user.phone,
+        },
+        { status: 403 }
       );
     }
 
@@ -68,7 +86,7 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error: any) {
-    console.error('[API Auth Login Error]: DATABASE_UNAVAILABLE', error);
+    console.error('[API Auth Login Error]:', error);
     const isDbError =
       error.name?.includes('Mongo') ||
       error.name?.includes('Mongoose') ||

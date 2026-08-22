@@ -26,13 +26,13 @@ export default function PartnerReviewsPage() {
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="border-b border-white/10 pb-4">
+    <div className="max-w-4xl mx-auto space-y-6 font-sans">
+      <div className="border-b border-slate-200 pb-4">
         <div className="flex items-center gap-2">
-          <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
-          <h1 className="text-2xl font-black font-heading text-white">Customer Reviews & Host Feedback</h1>
+          <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
+          <h1 className="text-2xl font-black font-heading text-slate-900">Customer Reviews & Host Feedback</h1>
         </div>
-        <p className="text-xs text-slate-400 font-medium mt-1">
+        <p className="text-xs text-slate-600 font-medium mt-1">
           Verified rider ratings and public host responses. Hosts can reply to reviews but cannot modify ratings or verification state.
         </p>
       </div>
@@ -47,19 +47,19 @@ export default function PartnerReviewsPage() {
       ) : (
         <div className="space-y-4">
           {reviews.map((r) => (
-            <div key={r._id} className="p-6 bg-slate-950/70 border border-white/10 rounded-3xl space-y-3 shadow-sm text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-extrabold text-white text-sm">{r.customerName || 'Verified Rider'}</span>
-                <div className="flex items-center gap-1 text-amber-400">
+            <div key={r._id} className="p-6 bg-white border border-slate-200 rounded-3xl space-y-3 shadow-sm text-xs">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                <span className="font-extrabold text-slate-900 text-sm">{r.customerName || 'Verified Rider'}</span>
+                <div className="flex items-center gap-1 text-amber-500">
                   {Array.from({ length: r.overallRating || 5 }).map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
+                    <Star key={i} className="w-3.5 h-3.5 fill-amber-500" />
                   ))}
                 </div>
               </div>
-              <p className="text-slate-300 leading-relaxed font-medium">{r.reviewText}</p>
+              <p className="text-slate-700 leading-relaxed font-medium">{r.reviewText}</p>
               {r.vendorReply?.text && (
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-slate-300">
-                  <strong className="text-amber-400 block text-[11px] uppercase tracking-wider mb-1">Your Public Response:</strong>
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-slate-800 font-medium">
+                  <strong className="text-amber-800 block text-[11px] uppercase tracking-wider mb-1">Your Public Response:</strong>
                   <p>{r.vendorReply.text}</p>
                 </div>
               )}

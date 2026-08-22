@@ -24,12 +24,12 @@ export async function POST(
     }
 
     const body = await request.json();
+    const odometer = body.returnOdometerReading ?? body.odometerReading;
+    const fuel = body.returnFuelBatteryLevel ?? body.fuelBatteryLevel;
+    const scratches = body.returnScratches ?? body.existingScratches ?? [];
+    const photos = body.returnPhotos ?? body.photos ?? {};
     const {
       vehicleId,
-      returnOdometerReading,
-      returnFuelBatteryLevel,
-      returnScratches = [],
-      returnPhotos = {},
       vendorAgentName,
       damageDescription = '',
       remarks = '',
@@ -38,13 +38,13 @@ export async function POST(
     // Required fields check
     const missing: string[] = [];
     if (!vehicleId) missing.push('Vehicle ID');
-    if (returnOdometerReading === undefined || returnOdometerReading === null) missing.push('Return Odometer reading');
-    if (returnFuelBatteryLevel === undefined || returnFuelBatteryLevel === null) missing.push('Return Fuel level');
+    if (odometer === undefined || odometer === null || isNaN(Number(odometer))) missing.push('Return odometer reading');
+    if (fuel === undefined || fuel === null || isNaN(Number(fuel))) missing.push('Return fuel level');
 
     if (missing.length > 0) {
       return NextResponse.json(
         { error: `Return inspection cannot be submitted. Missing: ${missing.join(', ')}` },
-        { status: 422 }
+        { status: 400 }
       );
     }
 
@@ -52,16 +52,16 @@ export async function POST(
       bookingId: id,
       vendorUserId: session.userId,
       vehicleId,
-      returnOdometerReading: Number(returnOdometerReading),
-      returnFuelBatteryLevel: Number(returnFuelBatteryLevel),
-      returnScratches,
+      returnOdometerReading: Number(odometer),
+      returnFuelBatteryLevel: Number(fuel),
+      returnScratches: scratches,
       returnPhotos: {
-        frontUrl: returnPhotos.frontUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
-        backUrl: returnPhotos.backUrl || 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
-        leftUrl: returnPhotos.leftUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
-        rightUrl: returnPhotos.rightUrl || 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
-        meterUrl: returnPhotos.meterUrl || 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
-        dashboardUrl: returnPhotos.dashboardUrl || '',
+        frontUrl: photos.frontUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
+        backUrl: photos.backUrl || 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
+        leftUrl: photos.leftUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
+        rightUrl: photos.rightUrl || 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
+        meterUrl: photos.meterUrl || 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
+        dashboardUrl: photos.dashboardUrl || '',
       },
       vendorAgentName: vendorAgentName || session.name,
       damageDescription,
@@ -78,7 +78,13 @@ export async function POST(
     });
   } catch (error: any) {
     console.error('[API Return Inspection POST Error]:', error);
-    const status = error.message?.includes('Forbidden') ? 403 : error.message?.includes('lower than') ? 400 : 500;
+    const status = error.message?.includes('Forbidden')
+      ? 403
+      : error.message?.includes('lower than') || error.message?.includes('Missing') || error.message?.includes('must be') || error.message?.includes('unavailable')
+      ? 400
+      : error.message?.includes('status') || error.message?.includes('transition')
+      ? 409
+      : 500;
     return NextResponse.json({ error: error.message || 'Return inspection could not be saved. Please try again.' }, { status });
   }
 }

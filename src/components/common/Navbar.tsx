@@ -17,8 +17,8 @@ import {
   ShieldCheck,
   Store,
   LogOut,
+  Bell,
 } from 'lucide-react';
-import ThemeToggle from '@/components/common/ThemeToggle';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -76,8 +76,8 @@ export const Navbar: React.FC = () => {
       <header
         className={`sticky top-0 z-40 transition-all duration-300 ${
           isScrolled
-            ? 'bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200/90 dark:border-white/10 shadow-md shadow-navy-950/5 py-2.5'
-            : 'bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-white/10 py-3.5'
+            ? 'bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-md shadow-slate-900/5 py-2.5'
+            : 'bg-white border-b border-slate-100 py-3.5'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -88,21 +88,21 @@ export const Navbar: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xl font-black font-heading text-navy-950 dark:text-white tracking-tight">
+                <span className="text-xl font-black font-heading text-slate-900 tracking-tight">
                   Ride<span className="text-brand-orange">Setu</span>
                 </span>
-                <span className="text-[10px] uppercase font-black px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-500/30">
+                <span className="text-[10px] uppercase font-black px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
                   Verified
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide -mt-0.5 hidden sm:block">
+              <p className="text-[10px] text-slate-500 font-medium tracking-wide -mt-0.5 hidden sm:block">
                 One Place. Every Ride. Every Destination.
               </p>
             </div>
           </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden lg:flex items-center gap-7 text-xs font-extrabold text-slate-700 dark:text-slate-300">
+          <nav className="hidden lg:flex items-center gap-7 text-xs font-extrabold text-slate-700">
             {/* Destination Dropdown */}
             <div className="relative" onMouseLeave={() => setDestDropdownOpen(false)}>
               <button
@@ -209,7 +209,11 @@ export const Navbar: React.FC = () => {
 
           {/* Desktop Right CTA / User Section */}
           <div className="hidden lg:flex items-center gap-3">
-            <ThemeToggle />
+            {/* Notification Bell Dropdown */}
+            {user && (
+              <NotificationBellDropdown userRole={user.role} />
+            )}
+
             {user ? (
               <div className="relative">
                 <button
@@ -297,9 +301,8 @@ export const Navbar: React.FC = () => {
             )}
           </div>
 
-          {/* Mobile Menu Button & Theme Toggle */}
+          {/* Mobile Menu Button */}
           <div className="lg:hidden flex items-center gap-2">
-            <ThemeToggle />
             <button
               type="button"
               onClick={() => setMobileDrawerOpen(true)}
@@ -321,5 +324,124 @@ export const Navbar: React.FC = () => {
     </>
   );
 };
+
+function NotificationBellDropdown({ userRole }: { userRole: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  const fetchNotifs = async () => {
+    try {
+      const res = await fetch('/api/notifications');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.notifications) setNotifications(data.notifications.slice(0, 5));
+        if (typeof data.unreadCount === 'number') setUnreadCount(data.unreadCount);
+      }
+    } catch {
+      // Silently continue
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 30000); // 30s polling
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
+  const handleNotifClick = async (notif: any) => {
+    try {
+      if (!notif.read) {
+        await fetch('/api/notifications', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationId: notif._id }),
+        });
+      }
+      setIsOpen(false);
+      fetchNotifs();
+    } catch {
+      setIsOpen(false);
+    }
+  };
+
+  const targetLink =
+    userRole === 'ADMIN'
+      ? '/ops/notifications'
+      : userRole === 'VENDOR'
+      ? '/partner/notifications'
+      : '/dashboard/notifications';
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (!isOpen) fetchNotifs();
+        }}
+        className="p-2.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition-colors focus-ring relative min-w-[44px] min-h-[44px] flex items-center justify-center"
+        aria-label="Open Notifications"
+      >
+        <Bell className="w-4 h-4 text-slate-700" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-[#FF6B00] text-white text-[10px] font-black shadow-sm animate-pulse">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div
+          className="absolute right-0 top-full mt-2 w-80 bg-white rounded-3xl shadow-2xl border border-slate-200 p-3 z-50 animate-in fade-in zoom-in-95 space-y-2 text-xs font-sans"
+          onMouseLeave={() => setIsOpen(false)}
+        >
+          <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 font-extrabold text-slate-900 font-heading">
+            <span>Latest Notifications</span>
+            {unreadCount > 0 && <span className="text-[10px] text-[#FF6B00]">{unreadCount} Unread</span>}
+          </div>
+
+          {notifications.length === 0 ? (
+            <div className="p-4 text-center text-slate-500 font-medium">No recent notifications</div>
+          ) : (
+            <div className="space-y-1 max-h-64 overflow-y-auto">
+              {notifications.map((n) => (
+                <Link
+                  key={n._id}
+                  href={n.link || targetLink}
+                  onClick={() => handleNotifClick(n)}
+                  className={`block p-2.5 rounded-2xl transition-colors ${
+                    !n.read ? 'bg-orange-50/50 border border-orange-100' : 'hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="font-bold text-slate-900 line-clamp-1">{n.title}</div>
+                  <div className="text-slate-600 text-[11px] line-clamp-2 mt-0.5">{n.message}</div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <div className="border-t border-slate-100 pt-2 text-center">
+            <Link
+              href={targetLink}
+              onClick={() => setIsOpen(false)}
+              className="text-[#FF6B00] hover:underline font-extrabold text-[11px] block py-1"
+            >
+              View all notifications →
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default Navbar;

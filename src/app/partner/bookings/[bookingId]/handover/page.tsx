@@ -271,11 +271,11 @@ export default function VendorHandoverInspectionPage({
                 min={0}
                 value={odometerReading}
                 onChange={(e) => setOdometerReading(Number(e.target.value))}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white font-mono font-bold text-sm focus:border-amber-400 focus:outline-none min-h-[44px]"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 font-mono font-bold text-sm focus:border-amber-400 focus:outline-none min-h-[44px]"
               />
             </div>
             <div>
-              <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Fuel / Battery Level ({fuelBatteryLevel}%) *</label>
+              <label className="text-xs font-extrabold text-slate-700 block mb-1">Fuel / Battery Level ({fuelBatteryLevel}%) *</label>
               <input
                 type="range"
                 min={0}
@@ -285,7 +285,7 @@ export default function VendorHandoverInspectionPage({
                 onChange={(e) => setFuelBatteryLevel(Number(e.target.value))}
                 className="w-full accent-amber-500 cursor-pointer min-h-[44px]"
               />
-              <div className="flex justify-between text-[10px] text-slate-400 font-semibold mt-1">
+              <div className="flex justify-between text-[10px] text-slate-500 font-semibold mt-1">
                 <span>Reserve (0%)</span>
                 <span>Half (50%)</span>
                 <span>Full Tank (100%)</span>
@@ -295,9 +295,9 @@ export default function VendorHandoverInspectionPage({
         </div>
 
         {/* 10-Point Condition Checklist */}
-        <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-white/10 space-y-4">
-          <h2 className="text-sm font-black text-slate-900 dark:text-white font-heading flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-500" /> 10-Point Vehicle Condition Checklist
+        <div className="p-5 rounded-3xl bg-white border border-slate-200 space-y-4 shadow-sm">
+          <h2 className="text-sm font-black text-slate-900 font-heading flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" /> 10-Point Vehicle Condition Checklist
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -315,17 +315,17 @@ export default function VendorHandoverInspectionPage({
             ].map((item) => {
               const current = checklist[item.key] || { status: 'PASS', notes: '' };
               return (
-                <div key={item.key} className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 space-y-2">
+                <div key={item.key} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">{item.label}</span>
+                    <span className="text-xs font-bold text-slate-900">{item.label}</span>
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => toggleChecklist(item.key, 'PASS')}
                         className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition-all ${
                           current.status === 'PASS'
-                            ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                            : 'bg-slate-100 dark:bg-white/5 text-slate-400'
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'bg-slate-200 text-slate-600'
                         }`}
                       >
                         PASS
@@ -335,8 +335,8 @@ export default function VendorHandoverInspectionPage({
                         onClick={() => toggleChecklist(item.key, 'ISSUE')}
                         className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition-all ${
                           current.status === 'ISSUE'
-                            ? 'bg-rose-500 text-white shadow-sm'
-                            : 'bg-slate-100 dark:bg-white/5 text-slate-400'
+                            ? 'bg-rose-600 text-white shadow-sm'
+                            : 'bg-slate-200 text-slate-600'
                         }`}
                       >
                         ISSUE
@@ -350,12 +350,12 @@ export default function VendorHandoverInspectionPage({
         </div>
 
         {/* 6 Inspection Photos */}
-        <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-white/10 space-y-4">
+        <div className="p-5 rounded-3xl bg-white border border-slate-200 space-y-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-black text-slate-900 dark:text-white font-heading flex items-center gap-2">
-              <Camera className="w-4 h-4 text-amber-500" /> 6 Mandatory Inspection Photos
+            <h2 className="text-sm font-black text-slate-900 font-heading flex items-center gap-2">
+              <Camera className="w-4 h-4 text-amber-600" /> 6 Mandatory Inspection Photos
             </h2>
-            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+            <span className="text-[11px] font-bold text-emerald-700 border border-emerald-200 bg-emerald-50 px-2 py-0.5 rounded-md">
               6/6 Photos Verified
             </span>
           </div>
@@ -370,8 +370,8 @@ export default function VendorHandoverInspectionPage({
               { key: 'meterUrl', label: '6. Odometer' },
             ].map((p) => (
               <div key={p.key} className="space-y-1">
-                <span className="text-[10px] font-extrabold text-slate-400 uppercase block">{p.label}</span>
-                <div className="relative aspect-video rounded-xl bg-slate-900 border border-slate-200 dark:border-white/10 overflow-hidden">
+                <span className="text-[10px] font-extrabold text-slate-500 uppercase block">{p.label}</span>
+                <div className="relative aspect-video rounded-xl bg-slate-100 border border-slate-200 overflow-hidden">
                   <Image src={(photos as any)[p.key]} alt={p.label} fill className="object-cover" />
                 </div>
               </div>
@@ -380,23 +380,23 @@ export default function VendorHandoverInspectionPage({
         </div>
 
         {/* Existing Scratches Log */}
-        <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-white/10 space-y-4">
-          <h2 className="text-sm font-black text-slate-900 dark:text-white font-heading flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500" /> Scratch & Dent Markers ({scratches.length})
+        <div className="p-5 rounded-3xl bg-white border border-slate-200 space-y-4 shadow-sm">
+          <h2 className="text-sm font-black text-slate-900 font-heading flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600" /> Scratch & Dent Markers ({scratches.length})
           </h2>
 
           {scratches.length > 0 && (
             <div className="space-y-2">
               {scratches.map((s) => (
-                <div key={s.id} className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs">
+                <div key={s.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
                   <div>
-                    <span className="font-bold text-slate-900 dark:text-white mr-2">{s.zone}:</span>
-                    <span className="text-slate-600 dark:text-slate-300">{s.description}</span>
-                    <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-500/20 text-amber-600 dark:text-amber-400 uppercase">
+                    <span className="font-bold text-slate-900 mr-2">{s.zone}:</span>
+                    <span className="text-slate-700 font-medium">{s.description}</span>
+                    <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 uppercase">
                       {s.severity}
                     </span>
                   </div>
-                  <button type="button" onClick={() => handleRemoveScratch(s.id)} className="text-rose-500 p-1">
+                  <button type="button" onClick={() => handleRemoveScratch(s.id)} className="text-rose-600 p-1">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -408,7 +408,7 @@ export default function VendorHandoverInspectionPage({
             <select
               value={newZone}
               onChange={(e) => setNewZone(e.target.value)}
-              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-white/10 text-xs text-slate-900 dark:text-white min-h-[44px]"
+              className="p-2.5 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 min-h-[44px]"
             >
               <option value="Front Mudguard">Front Mudguard</option>
               <option value="Left Body Panel">Left Body Panel</option>
@@ -421,12 +421,12 @@ export default function VendorHandoverInspectionPage({
               placeholder="Description (e.g. 2cm mark)"
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
-              className="sm:col-span-2 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-white/10 text-xs text-slate-900 dark:text-white min-h-[44px]"
+              className="sm:col-span-2 p-2.5 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 placeholder:text-slate-500 min-h-[44px]"
             />
             <button
               type="button"
               onClick={handleAddScratch}
-              className="px-3 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs min-h-[44px]"
+              className="px-3 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs min-h-[44px]"
             >
               + Add Marker
             </button>

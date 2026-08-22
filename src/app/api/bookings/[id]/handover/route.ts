@@ -92,6 +92,44 @@ export async function POST(
     }
 
     const body = await request.json();
+
+    if (body.handoverType === 'RETURN') {
+      const odometer = body.returnOdometerReading ?? body.odometerReading;
+      const fuel = body.returnFuelBatteryLevel ?? body.fuelBatteryLevel;
+      const scratches = body.returnScratches ?? body.existingScratches ?? [];
+      const photos = body.returnPhotos ?? body.photos ?? {};
+      const { vehicleId, vendorAgentName, damageDescription = '', remarks = '' } = body;
+
+      const { report, isDisputed } = await HandoverService.recordVendorReturn({
+        bookingId: id,
+        vendorUserId: session.userId,
+        vehicleId,
+        returnOdometerReading: Number(odometer),
+        returnFuelBatteryLevel: Number(fuel),
+        returnScratches: scratches,
+        returnPhotos: {
+          frontUrl: photos.frontUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
+          backUrl: photos.backUrl || 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
+          leftUrl: photos.leftUrl || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
+          rightUrl: photos.rightUrl || 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
+          meterUrl: photos.meterUrl || 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
+          dashboardUrl: photos.dashboardUrl || '',
+        },
+        vendorAgentName: vendorAgentName || session.name,
+        damageDescription,
+        remarks,
+      });
+
+      return NextResponse.json({
+        success: true,
+        report,
+        isDisputed,
+        message: isDisputed
+          ? 'Potential damage detected. Your return inspection has been submitted for RideSetu review.'
+          : 'Return inspection completed successfully. Booking marked COMPLETED & deposit released.',
+      });
+    }
+
     const {
       vehicleId,
       odometerReading,

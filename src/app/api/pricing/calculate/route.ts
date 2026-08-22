@@ -42,18 +42,31 @@ async function processPricingCalculation(
   });
 
   const user = req ? await getAuthUser(req as any) : null;
-  const avail = await AvailabilityService.isVehicleAvailable({
+  const serviceability = await AvailabilityService.validateVehicleServiceability({
     vehicleId,
     pickupDateTime,
     returnDateTime,
     excludeUserId: user?.userId,
   });
 
+  if (!serviceability.serviceable) {
+    return NextResponse.json({
+      success: true,
+      pricing,
+      available: false,
+      serviceable: false,
+      code: serviceability.code,
+      availabilityReason: serviceability.reason || 'This vehicle is currently unavailable for booking.',
+    });
+  }
+
   return NextResponse.json({
     success: true,
     pricing,
-    available: avail.available,
-    availabilityReason: avail.reason || null,
+    available: serviceability.available,
+    serviceable: serviceability.serviceable,
+    code: serviceability.code,
+    availabilityReason: serviceability.reason || null,
   });
 }
 

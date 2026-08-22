@@ -25,13 +25,13 @@ export default function PartnerDocumentsPage() {
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="border-b border-white/10 pb-4">
+    <div className="max-w-4xl mx-auto space-y-6 font-sans">
+      <div className="border-b border-slate-200 pb-4">
         <div className="flex items-center gap-2">
-          <FileCheck className="w-6 h-6 text-amber-400" />
-          <h1 className="text-2xl font-black font-heading text-white">Trade License & Compliance Documents</h1>
+          <FileCheck className="w-6 h-6 text-amber-600" />
+          <h1 className="text-2xl font-black font-heading text-slate-900">Trade License & Compliance Documents</h1>
         </div>
-        <p className="text-xs text-slate-400 font-medium mt-1">
+        <p className="text-xs text-slate-600 font-medium mt-1">
           Regulatory trade licenses, GST certificates, and rental permit documents verified by RideSetu Platform Operations.
         </p>
       </div>
@@ -41,14 +41,14 @@ export default function PartnerDocumentsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {['Trade License', 'GST Registration', 'Owner Identity ID', 'Uttarakhand Rental Permit'].map((docName, idx) => (
-            <div key={idx} className="p-6 bg-slate-950/70 border border-white/10 rounded-3xl space-y-3 shadow-sm text-xs">
+            <div key={idx} className="p-6 bg-white border border-slate-200 rounded-3xl space-y-3 shadow-sm text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-extrabold text-white text-sm">{docName}</span>
-                <span className="font-black uppercase px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] flex items-center gap-1">
+                <span className="font-extrabold text-slate-900 text-sm">{docName}</span>
+                <span className="font-black uppercase px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" /> Verified
                 </span>
               </div>
-              <p className="text-slate-400 text-[11px]">HMAC-SHA256 Encrypted Storage • Verified Active</p>
+              <p className="text-slate-600 font-medium text-[11px]">HMAC-SHA256 Encrypted Storage • Verified Active</p>
             </div>
           ))}
         </div>

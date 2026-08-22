@@ -9,6 +9,8 @@ export type KYCStatus =
   | 'ACTION_REQUIRED'
   | 'PENDING'; // Kept for backwards compatibility
 
+export type AuthProviderType = 'PASSWORD' | 'GOOGLE' | 'OTP';
+
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
@@ -23,6 +25,10 @@ export interface IUser extends Document {
   drivingLicenseExpiry?: Date;
   emailVerified: boolean;
   phoneVerified: boolean;
+  googleId?: string;
+  googleEmail?: string;
+  googleProfileImage?: string;
+  authProviders?: AuthProviderType[];
   dateOfBirth?: Date;
   emergencyContact?: {
     name: string;
@@ -43,8 +49,8 @@ const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
-    phone: { type: String, required: true, trim: true },
-    passwordHash: { type: String, required: true },
+    phone: { type: String, required: false, default: '', trim: true },
+    passwordHash: { type: String, required: false, default: '' },
     role: {
       type: String,
       enum: ['CUSTOMER', 'VENDOR', 'ADMIN'],
@@ -67,6 +73,10 @@ const UserSchema = new Schema<IUser>(
     drivingLicenseExpiry: { type: Date },
     emailVerified: { type: Boolean, default: false },
     phoneVerified: { type: Boolean, default: false },
+    googleId: { type: String, index: true, sparse: true },
+    googleEmail: { type: String, lowercase: true, trim: true },
+    googleProfileImage: { type: String, default: '' },
+    authProviders: [{ type: String, enum: ['PASSWORD', 'GOOGLE', 'OTP'] }],
     dateOfBirth: { type: Date },
     emergencyContact: {
       name: { type: String, default: '' },

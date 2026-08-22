@@ -270,13 +270,13 @@ export default function VendorReturnInspectionPage({
         </div>
 
         {/* Damage Reporting Toggle */}
-        <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-white/10 space-y-4">
-          <h2 className="text-sm font-black text-slate-900 dark:text-white font-heading flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500" /> Damage & Discrepancy Assessment
+        <div className="p-5 rounded-3xl bg-white border border-slate-200 space-y-4 shadow-sm">
+          <h2 className="text-sm font-black text-slate-900 font-heading flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600" /> Damage & Discrepancy Assessment
           </h2>
 
           <div>
-            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 block mb-1">
+            <label className="text-xs font-extrabold text-slate-700 block mb-1">
               New Damage / Incident Notes (Leave blank if zero damage)
             </label>
             <textarea
@@ -284,7 +284,7 @@ export default function VendorReturnInspectionPage({
               onChange={(e) => setDamageDescription(e.target.value)}
               rows={2}
               placeholder="Describe any new scratch, dent, or missing accessory observed upon return..."
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs font-medium focus:border-amber-400 focus:outline-none"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder:text-slate-500 text-xs font-medium focus:border-amber-400 focus:outline-none"
             />
           </div>
         </div>
@@ -294,7 +294,7 @@ export default function VendorReturnInspectionPage({
           <button
             type="button"
             onClick={() => router.push('/partner/bookings')}
-            className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-white text-xs font-bold min-h-[44px]"
+            className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold min-h-[44px]"
           >
             Cancel
           </button>

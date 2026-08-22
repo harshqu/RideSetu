@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
-import { PartnerLayout } from '@/components/layouts/PartnerLayout';
 import DigitalInspectionModal from '@/components/handover/DigitalInspectionModal';
 import { formatINR, formatDateTime } from '@/lib/utils';
 import { StatusBadge, RatingBadge } from '@/components/ui/Badge';
@@ -89,12 +88,11 @@ export default function PartnerDashboardPage() {
   const noDepositVehicles = vehicles.filter((v) => v.securityDepositEnabled === false);
 
   return (
-    <PartnerLayout>
-      <div className="max-w-7xl mx-auto space-y-8 font-sans">
-        {/* Header Banner */}
-        <div className="bg-gradient-to-r from-slate-950 via-navy-950 to-slate-950 rounded-3xl p-6 sm:p-8 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl border border-white/10">
+    <div className="max-w-7xl mx-auto space-y-8 font-sans">
+      {/* Header Banner */}
+      <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-md border border-slate-800">
           <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold border border-amber-500/30">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
               <Store className="w-3.5 h-3.5" /> B2B Mobility Business Workspace
             </div>
             <h1 className="text-2xl sm:text-3xl font-black font-heading text-white">
@@ -108,14 +106,14 @@ export default function PartnerDashboardPage() {
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/partner/fleet"
-              className="px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center gap-2 transition-colors"
+              className="px-4 py-2.5 rounded-2xl bg-brand-orange hover:bg-orange-600 text-white font-black text-xs shadow-md shadow-orange-500/20 flex items-center gap-2 transition-colors min-h-[44px]"
             >
               <Plus className="w-4 h-4" />
               <span>Add Vehicle</span>
             </Link>
             <button
               onClick={loadVendorData}
-              className="p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors"
+              className="p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               title="Refresh Analytics"
             >
               <RefreshCw className="w-4 h-4" />
@@ -127,46 +125,131 @@ export default function PartnerDashboardPage() {
           <DashboardSkeleton />
         ) : (
           <>
+            {/* Onboarding Verification Status Banner */}
+            {(() => {
+              const status = vendorProfile?.verificationStatus || 'PENDING';
+              const reason = vendorProfile?.rejectionReason || vendorProfile?.suspendedReason || '';
+
+              if (status === 'PENDING') {
+                return (
+                  <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold shrink-0">
+                        <AlertTriangle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-sm text-amber-900">Complete your Partner Application</h3>
+                        <p className="text-xs text-amber-700 font-medium">Provide required trade license, KYC documents, and payout details to get verified.</p>
+                      </div>
+                    </div>
+                    <Link
+                      href="/partner/onboarding"
+                      className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black shadow-sm shrink-0"
+                    >
+                      Continue Onboarding →
+                    </Link>
+                  </div>
+                );
+              }
+
+              if (status === 'UNDER_REVIEW') {
+                return (
+                  <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 flex items-center gap-3 shadow-sm">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold shrink-0">
+                      <Clock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-blue-900">Application Under Review</h3>
+                      <p className="text-xs text-blue-700 font-medium">RideSetu Operations is reviewing your submitted business documents. Vehicles can be published once verified.</p>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (status === 'ACTION_REQUIRED') {
+                return (
+                  <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold shrink-0">
+                        <AlertTriangle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-sm text-rose-900">Action Required — Document Review Feedback</h3>
+                        <p className="text-xs text-rose-700 font-semibold">{reason || 'Please update your submitted documents as requested by Operations.'}</p>
+                      </div>
+                    </div>
+                    <Link
+                      href="/partner/onboarding"
+                      className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-sm shrink-0"
+                    >
+                      Fix & Resubmit →
+                    </Link>
+                  </div>
+                );
+              }
+
+              if (status === 'REJECTED' || status === 'SUSPENDED') {
+                return (
+                  <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 flex items-center gap-3 shadow-sm">
+                    <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold shrink-0">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-rose-900">Account Status: {status}</h3>
+                      <p className="text-xs text-rose-700 font-medium">{reason || 'Contact partner support for application assistance.'}</p>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-4 flex items-center gap-3 shadow-sm">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <span className="text-xs font-extrabold text-emerald-900">Verified Partner ✓ — Fleet Publishing Enabled</span>
+                </div>
+              );
+            })()}
+
             {/* Section A: Business KPIs */}
             <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-              <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 space-y-1">
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Today&apos;s Revenue</div>
-                <div className="text-xl font-black font-heading text-emerald-400">{formatINR(metrics?.todayRevenue || 1840)}</div>
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1 shadow-sm">
+                <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Today&apos;s Revenue</div>
+                <div className="text-xl font-black font-heading text-emerald-600">{formatINR(metrics?.todayRevenue || 1840)}</div>
               </div>
 
-              <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 space-y-1">
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Monthly Revenue</div>
-                <div className="text-xl font-black font-heading text-white">{formatINR(metrics?.monthlyRevenue || 42800)}</div>
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1 shadow-sm">
+                <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Monthly Revenue</div>
+                <div className="text-xl font-black font-heading text-slate-900">{formatINR(metrics?.monthlyRevenue || 42800)}</div>
               </div>
 
-              <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 space-y-1">
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Active Bookings</div>
-                <div className="text-xl font-black font-heading text-amber-400">{metrics?.activeBookings || bookings.filter((b) => b.bookingStatus === 'ACTIVE').length}</div>
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1 shadow-sm">
+                <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Active Bookings</div>
+                <div className="text-xl font-black font-heading text-amber-600">{metrics?.activeBookings || bookings.filter((b) => b.bookingStatus === 'ACTIVE').length}</div>
               </div>
 
-              <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 space-y-1">
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Fleet Utilization</div>
-                <div className="text-xl font-black font-heading text-sky-400">{metrics?.fleetUtilization || 78}%</div>
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1 shadow-sm">
+                <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Fleet Utilization</div>
+                <div className="text-xl font-black font-heading text-blue-600">{metrics?.fleetUtilization || 78}%</div>
               </div>
 
-              <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 space-y-1">
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Pending Payout</div>
-                <div className="text-xl font-black font-heading text-amber-300">{formatINR(metrics?.pendingPayout || 6420)}</div>
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1 shadow-sm">
+                <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Pending Payout</div>
+                <div className="text-xl font-black font-heading text-amber-600">{formatINR(metrics?.pendingPayout || 6420)}</div>
               </div>
 
-              <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 space-y-1">
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Reliability Score</div>
-                <div className="text-xl font-black font-heading text-emerald-400">{vendorProfile?.reliabilityScore || 98}/100</div>
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1 shadow-sm">
+                <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Reliability Score</div>
+                <div className="text-xl font-black font-heading text-emerald-600">{vendorProfile?.reliabilityScore || 98}/100</div>
               </div>
             </div>
 
             {/* Section B: Today's Operations */}
-            <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-4">
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-black font-heading text-white flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-amber-400" /> Today&apos;s Operations Queue
+                <h3 className="text-lg font-black font-heading text-slate-900 flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-amber-600" /> Today&apos;s Operations Queue
                 </h3>
-                <Link href="/partner/bookings" className="text-xs font-bold text-amber-400 hover:underline">
+                <Link href="/partner/bookings" className="text-xs font-bold text-amber-700 hover:underline">
                   View Full Queue →
                 </Link>
               </div>
@@ -174,14 +257,14 @@ export default function PartnerDashboardPage() {
               {bookings.length === 0 ? (
                 <EmptyState icon={Calendar} title="No Operations Today" description="Upcoming pick-ups and returns will appear here." />
               ) : (
-                <div className="divide-y divide-white/10">
+                <div className="divide-y divide-slate-200">
                   {bookings.slice(0, 5).map((booking) => (
                     <div key={booking._id} className="py-3 flex items-center justify-between gap-4 text-xs">
                       <div>
-                        <div className="font-extrabold text-white">
+                        <div className="font-extrabold text-slate-900">
                           Booking #{booking.bookingId?.substring(0, 8)} — {booking.vehicleId?.brand} {booking.vehicleId?.model}
                         </div>
-                        <div className="text-slate-400 text-[10px]">Customer: {booking.customerId?.name || 'Rider'}</div>
+                        <div className="text-slate-500 font-medium text-[10px]">Customer: {booking.customerId?.name || 'Rider'}</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <StatusBadge status={booking.bookingStatus} />
@@ -195,7 +278,7 @@ export default function PartnerDashboardPage() {
                               handoverType: booking.bookingStatus === 'CONFIRMED' ? 'PICKUP' : 'RETURN',
                             })
                           }
-                          className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[11px] transition-colors"
+                          className="px-3 py-1.5 rounded-xl bg-brand-orange hover:bg-orange-600 text-white font-black text-[11px] transition-colors shadow-sm min-h-[36px]"
                         >
                           {booking.bookingStatus === 'CONFIRMED' ? 'Start Handover' : 'Inspect Return'}
                         </button>
@@ -209,50 +292,50 @@ export default function PartnerDashboardPage() {
             {/* Section C & G: Fleet Health & Security Deposit Policy */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Fleet Health */}
-              <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-4">
-                <h3 className="text-lg font-black font-heading text-white flex items-center gap-2">
-                  <Car className="w-5 h-5 text-amber-400" /> Fleet Health Breakdown
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
+                <h3 className="text-lg font-black font-heading text-slate-900 flex items-center gap-2">
+                  <Car className="w-5 h-5 text-amber-600" /> Fleet Health Breakdown
                 </h3>
                 <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-slate-950 p-3 rounded-2xl border border-white/5">
-                    <div className="text-slate-400 font-semibold">Available Live</div>
-                    <div className="text-lg font-black text-emerald-400">{vehicles.filter((v) => v.isAvailable).length}</div>
+                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                    <div className="text-slate-600 font-semibold">Available Live</div>
+                    <div className="text-lg font-black text-emerald-600">{vehicles.filter((v) => v.isAvailable).length}</div>
                   </div>
-                  <div className="bg-slate-950 p-3 rounded-2xl border border-white/5">
-                    <div className="text-slate-400 font-semibold">Active Rented</div>
-                    <div className="text-lg font-black text-amber-400">{vehicles.filter((v) => !v.isAvailable).length}</div>
+                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                    <div className="text-slate-600 font-semibold">Active Rented</div>
+                    <div className="text-lg font-black text-amber-600">{vehicles.filter((v) => !v.isAvailable).length}</div>
                   </div>
-                  <div className="bg-slate-950 p-3 rounded-2xl border border-white/5">
-                    <div className="text-slate-400 font-semibold">Maintenance</div>
-                    <div className="text-lg font-black text-rose-400">0</div>
+                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                    <div className="text-slate-600 font-semibold">Maintenance</div>
+                    <div className="text-lg font-black text-rose-600">0</div>
                   </div>
-                  <div className="bg-slate-950 p-3 rounded-2xl border border-white/5">
-                    <div className="text-slate-400 font-semibold">Under Review</div>
-                    <div className="text-lg font-black text-sky-400">0</div>
+                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                    <div className="text-slate-600 font-semibold">Under Review</div>
+                    <div className="text-lg font-black text-blue-600">0</div>
                   </div>
                 </div>
               </div>
 
               {/* Security Deposit Policy */}
-              <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-4">
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-black font-heading text-white flex items-center gap-2">
-                    <Lock className="w-5 h-5 text-amber-400" /> Security Deposit Policy
+                  <h3 className="text-lg font-black font-heading text-slate-900 flex items-center gap-2">
+                    <Lock className="w-5 h-5 text-amber-600" /> Security Deposit Policy
                   </h3>
-                  <Link href="/partner/fleet" className="text-xs font-bold text-amber-400 hover:underline">
+                  <Link href="/partner/fleet" className="text-xs font-bold text-amber-700 hover:underline">
                     Manage Settings →
                   </Link>
                 </div>
                 <div className="space-y-3 text-xs">
-                  <div className="bg-slate-950 p-3 rounded-2xl border border-white/5 flex justify-between items-center">
-                    <span className="text-slate-300 font-semibold">Deposit-Enabled Fleet</span>
-                    <span className="font-black text-white">{depositEnabledVehicles.length} Vehicles</span>
+                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex justify-between items-center">
+                    <span className="text-slate-700 font-semibold">Deposit-Enabled Fleet</span>
+                    <span className="font-black text-slate-900">{depositEnabledVehicles.length} Vehicles</span>
                   </div>
-                  <div className="bg-slate-950 p-3 rounded-2xl border border-white/5 flex justify-between items-center">
-                    <span className="text-slate-300 font-semibold">No-Deposit Fleet (₹0)</span>
-                    <span className="font-black text-amber-400">{noDepositVehicles.length} Vehicles</span>
+                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex justify-between items-center">
+                    <span className="text-slate-700 font-semibold">No-Deposit Fleet (₹0)</span>
+                    <span className="font-black text-amber-700">{noDepositVehicles.length} Vehicles</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                  <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
                     Security deposits are held in isolated escrow and automatically refunded upon zero-damage return inspection.
                   </p>
                 </div>
@@ -260,20 +343,20 @@ export default function PartnerDashboardPage() {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-4">
-              <h3 className="text-lg font-black font-heading text-white">Quick Actions</h3>
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
+              <h3 className="text-lg font-black font-heading text-slate-900">Quick Actions</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Link href="/partner/fleet" className="p-4 rounded-2xl bg-slate-950 border border-white/10 hover:border-amber-500 text-white text-xs font-extrabold flex flex-col items-center gap-2 text-center transition-colors">
-                  <Plus className="w-5 h-5 text-amber-400" /> Add Vehicle
+                <Link href="/partner/fleet" className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-amber-500 text-slate-900 text-xs font-extrabold flex flex-col items-center gap-2 text-center transition-colors min-h-[44px]">
+                  <Plus className="w-5 h-5 text-amber-600" /> Add Vehicle
                 </Link>
-                <Link href="/partner/bookings" className="p-4 rounded-2xl bg-slate-950 border border-white/10 hover:border-amber-500 text-white text-xs font-extrabold flex flex-col items-center gap-2 text-center transition-colors">
-                  <Calendar className="w-5 h-5 text-amber-400" /> View Bookings
+                <Link href="/partner/bookings" className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-amber-500 text-slate-900 text-xs font-extrabold flex flex-col items-center gap-2 text-center transition-colors min-h-[44px]">
+                  <Calendar className="w-5 h-5 text-amber-600" /> View Bookings
                 </Link>
-                <Link href="/partner/earnings" className="p-4 rounded-2xl bg-slate-950 border border-white/10 hover:border-amber-500 text-white text-xs font-extrabold flex flex-col items-center gap-2 text-center transition-colors">
-                  <TrendingUp className="w-5 h-5 text-amber-400" /> View Earnings
+                <Link href="/partner/earnings" className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-amber-500 text-slate-900 text-xs font-extrabold flex flex-col items-center gap-2 text-center transition-colors min-h-[44px]">
+                  <TrendingUp className="w-5 h-5 text-amber-600" /> View Earnings
                 </Link>
-                <Link href="/partner/payouts" className="p-4 rounded-2xl bg-slate-950 border border-white/10 hover:border-amber-500 text-white text-xs font-extrabold flex flex-col items-center gap-2 text-center transition-colors">
-                  <Wallet className="w-5 h-5 text-amber-400" /> Request Payout
+                <Link href="/partner/payouts" className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-amber-500 text-slate-900 text-xs font-extrabold flex flex-col items-center gap-2 text-center transition-colors min-h-[44px]">
+                  <Wallet className="w-5 h-5 text-amber-600" /> Request Payout
                 </Link>
               </div>
             </div>
@@ -296,6 +379,5 @@ export default function PartnerDashboardPage() {
           />
         )}
       </div>
-    </PartnerLayout>
   );
 }

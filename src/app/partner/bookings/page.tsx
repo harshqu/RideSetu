@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { PartnerLayout } from '@/components/layouts/PartnerLayout';
+import Link from 'next/link';
 import DigitalInspectionModal from '@/components/handover/DigitalInspectionModal';
 import { formatINR, formatDateTime } from '@/lib/utils';
 import { StatusBadge } from '@/components/ui/Badge';
@@ -68,25 +68,24 @@ export default function PartnerBookingsPage() {
   ];
 
   return (
-    <PartnerLayout>
-      <div className="max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="max-w-7xl mx-auto space-y-6 font-sans">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 p-6 rounded-3xl border border-white/10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
           <div>
-            <h1 className="text-2xl font-black font-heading text-white flex items-center gap-2">
-              <CalendarDays className="w-6 h-6 text-amber-400" /> Bookings & Digital Handovers
+            <h1 className="text-2xl font-black font-heading text-slate-900 flex items-center gap-2">
+              <CalendarDays className="w-6 h-6 text-amber-600" /> Bookings & Digital Handovers
             </h1>
-            <p className="text-xs text-slate-400 font-medium mt-1">
+            <p className="text-xs text-slate-600 font-medium mt-1">
               Manage operational handover queues, mutual photographic check-ins, and return inspections.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="bg-slate-950 p-1 rounded-2xl border border-white/10 flex items-center text-xs font-extrabold">
+            <div className="bg-slate-100 p-1 rounded-2xl border border-slate-200 flex items-center text-xs font-extrabold">
               <button
                 onClick={() => setActiveTab('KANBAN')}
                 className={`px-3 py-1.5 rounded-xl transition-all ${
-                  activeTab === 'KANBAN' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+                  activeTab === 'KANBAN' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Kanban View
@@ -94,7 +93,7 @@ export default function PartnerBookingsPage() {
               <button
                 onClick={() => setActiveTab('TABLE')}
                 className={`px-3 py-1.5 rounded-xl transition-all ${
-                  activeTab === 'TABLE' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+                  activeTab === 'TABLE' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Table View
@@ -103,7 +102,7 @@ export default function PartnerBookingsPage() {
 
             <button
               onClick={loadBookings}
-              className="p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+              className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors border border-slate-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
               title="Refresh"
             >
               <RefreshCw className="w-4 h-4" />
@@ -119,7 +118,7 @@ export default function PartnerBookingsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by Booking ID, vehicle model, or customer name..."
-            className="w-full bg-slate-900 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+            className="w-full bg-white border border-slate-300 rounded-2xl pl-11 pr-4 py-3 text-xs text-slate-900 placeholder:text-slate-500 focus:outline-none focus:border-brand-orange shadow-sm"
           />
         </div>
 
@@ -134,38 +133,38 @@ export default function PartnerBookingsPage() {
               );
 
               return (
-                <div key={col.status} className="bg-slate-900 border border-white/10 rounded-3xl p-4 space-y-3 min-w-[260px]">
+                <div key={col.status} className="bg-white border border-slate-200 rounded-3xl p-4 space-y-3 min-w-[260px] shadow-sm">
                   <div className={`border-l-4 ${col.color} pl-2 flex items-center justify-between`}>
-                    <h3 className="text-xs font-black text-white">{col.title}</h3>
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/10 text-slate-300">
+                    <h3 className="text-xs font-black text-slate-900">{col.title}</h3>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                       {colBookings.length}
                     </span>
                   </div>
 
                   <div className="space-y-3">
                     {colBookings.length === 0 ? (
-                      <div className="p-4 text-center text-slate-500 text-[11px] font-medium border border-dashed border-white/10 rounded-2xl">
+                      <div className="p-4 text-center text-slate-500 text-[11px] font-medium border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
                         No bookings
                       </div>
                     ) : (
                       colBookings.map((b) => (
-                        <div key={b._id} className="bg-slate-950 border border-white/10 rounded-2xl p-3 space-y-2 text-xs">
+                        <div key={b._id} className="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-2 text-xs">
                           <div className="flex justify-between items-start">
-                            <span className="font-mono text-[10px] text-amber-400 font-bold">#{b.bookingId?.substring(0, 8)}</span>
+                            <span className="font-mono text-[10px] text-amber-700 font-bold">#{b.bookingId?.substring(0, 8)}</span>
                             <StatusBadge status={b.bookingStatus} />
                           </div>
 
                           <div>
-                            <div className="font-extrabold text-white">
+                            <div className="font-extrabold text-slate-900">
                               {b.vehicleId?.brand} {b.vehicleId?.model}
                             </div>
-                            <div className="text-slate-400 text-[10px] flex items-center gap-1">
-                              <User className="w-3 h-3 text-slate-500" /> {b.customerId?.name || 'Rider Customer'}
+                            <div className="text-slate-500 text-[10px] flex items-center gap-1 font-medium">
+                              <User className="w-3 h-3 text-slate-400" /> {b.customerId?.name || 'Rider Customer'}
                             </div>
                           </div>
 
-                          <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-                            <span className="font-black text-emerald-400 text-xs">{formatINR(b.vendorPayout?.netVendorPayout || b.totalAmount)}</span>
+                          <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+                            <span className="font-black text-emerald-700 text-xs">{formatINR(b.vendorPayout?.netVendorPayout || b.totalAmount)}</span>
                             <button
                               onClick={() =>
                                 setInspectionModal({
@@ -176,7 +175,7 @@ export default function PartnerBookingsPage() {
                                   handoverType: b.bookingStatus === 'CONFIRMED' ? 'PICKUP' : 'RETURN',
                                 })
                               }
-                              className="px-2.5 py-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[10px] transition-colors"
+                              className="px-2.5 py-1.5 rounded-xl bg-brand-orange hover:bg-orange-600 text-white font-black text-[10px] transition-colors shadow-sm"
                             >
                               Inspect
                             </button>
@@ -191,9 +190,9 @@ export default function PartnerBookingsPage() {
           </div>
         ) : (
           /* Table View */
-          <div className="bg-slate-900 border border-white/10 rounded-3xl overflow-hidden">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] font-extrabold border-b border-white/10">
+          <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-100 text-slate-900 uppercase text-[10px] font-extrabold border-b border-slate-200">
                 <tr>
                   <th className="p-4">Booking Reference</th>
                   <th className="p-4">Vehicle</th>
@@ -204,15 +203,15 @@ export default function PartnerBookingsPage() {
                   <th className="p-4 text-center">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-slate-200">
                 {filteredBookings.map((b) => (
-                  <tr key={b._id} className="hover:bg-white/5 transition-colors">
-                    <td className="p-4 font-mono font-bold text-amber-400">#{b.bookingId?.substring(0, 8)}</td>
-                    <td className="p-4 font-extrabold text-white">{b.vehicleId?.brand} {b.vehicleId?.model}</td>
-                    <td className="p-4 text-slate-300">{b.customerId?.name || 'Rider Customer'}</td>
-                    <td className="p-4 text-[11px] text-slate-400">{formatDateTime(b.pickupDateTime)}</td>
+                  <tr key={b._id} className="hover:bg-amber-50/50 transition-colors">
+                    <td className="p-4 font-mono font-bold text-amber-700">#{b.bookingId?.substring(0, 8)}</td>
+                    <td className="p-4 font-extrabold text-slate-900">{b.vehicleId?.brand} {b.vehicleId?.model}</td>
+                    <td className="p-4 text-slate-700 font-medium">{b.customerId?.name || 'Rider Customer'}</td>
+                    <td className="p-4 text-[11px] text-slate-500 font-medium">{formatDateTime(b.pickupDateTime)}</td>
                     <td className="p-4"><StatusBadge status={b.bookingStatus} /></td>
-                    <td className="p-4 text-right font-black text-emerald-400">{formatINR(b.vendorPayout?.netVendorPayout || b.totalAmount)}</td>
+                    <td className="p-4 text-right font-black text-emerald-700">{formatINR(b.vendorPayout?.netVendorPayout || b.totalAmount)}</td>
                     <td className="p-4 text-center">
                       <button
                         onClick={() =>
@@ -224,7 +223,7 @@ export default function PartnerBookingsPage() {
                             handoverType: b.bookingStatus === 'CONFIRMED' ? 'PICKUP' : 'RETURN',
                           })
                         }
-                        className="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-black text-[11px]"
+                        className="px-3 py-1.5 rounded-xl bg-brand-orange hover:bg-orange-600 text-white font-black text-[11px] min-h-[36px]"
                       >
                         Inspect
                       </button>
@@ -252,6 +251,5 @@ export default function PartnerBookingsPage() {
           />
         )}
       </div>
-    </PartnerLayout>
   );
 }
