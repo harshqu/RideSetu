@@ -558,6 +558,24 @@ export class AvailabilityService {
     });
   }
 
+  public static async releaseReservationLock(
+    vehicleId: string | mongoose.Types.ObjectId,
+    userId?: string | mongoose.Types.ObjectId
+  ): Promise<void> {
+    await connectToDatabase();
+    const query: Record<string, unknown> = {
+      vehicleId: typeof vehicleId === 'string' ? new mongoose.Types.ObjectId(vehicleId) : vehicleId,
+      status: 'HOLD',
+    };
+    if (userId) {
+      query.userId = typeof userId === 'string' ? new mongoose.Types.ObjectId(userId) : userId;
+    }
+    await ReservationLock.updateMany(query, {
+      status: 'RELEASED',
+      expiresAt: new Date(),
+    });
+  }
+
   /**
    * Confirm a reservation hold when payment succeeds
    */

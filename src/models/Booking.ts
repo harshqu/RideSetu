@@ -44,7 +44,9 @@ export type PaymentStatus =
 export interface IBooking extends Document {
   _id: mongoose.Types.ObjectId;
   bookingNumber: string;
+  groupBookingId?: string;
   customerId: mongoose.Types.ObjectId;
+  customerVehicleId?: mongoose.Types.ObjectId;
   vendorId: mongoose.Types.ObjectId;
   vehicleId: mongoose.Types.ObjectId;
   destinationId: mongoose.Types.ObjectId;
@@ -75,6 +77,14 @@ export interface IBooking extends Document {
     phone: string;
     email: string;
     drivingLicenseNumber: string;
+  };
+  riderDetails?: {
+    fullName: string;
+    drivingLicenseNumber: string;
+    drivingLicenseDocumentUrl?: string;
+    drivingLicenseDocumentKey?: string;
+    verificationStatus?: string;
+    rejectionReason?: string;
   };
   emergencyContact?: {
     name: string;
@@ -116,7 +126,9 @@ export interface IBooking extends Document {
 const BookingSchema = new Schema<IBooking>(
   {
     bookingNumber: { type: String, required: true, unique: true, index: true },
+    groupBookingId: { type: String, index: true },
     customerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    customerVehicleId: { type: Schema.Types.ObjectId, ref: 'CustomerVehicle' },
     vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor', required: true, index: true },
     vehicleId: { type: Schema.Types.ObjectId, ref: 'Vehicle', required: true, index: true },
     destinationId: { type: Schema.Types.ObjectId, ref: 'Destination', required: true },
@@ -186,6 +198,14 @@ const BookingSchema = new Schema<IBooking>(
       phone: { type: String, required: true },
       email: { type: String, required: true },
       drivingLicenseNumber: { type: String, required: true },
+    },
+    riderDetails: {
+      fullName: { type: String, default: '' },
+      drivingLicenseNumber: { type: String, default: '' },
+      drivingLicenseDocumentUrl: { type: String, default: '' },
+      drivingLicenseDocumentKey: { type: String, default: '' },
+      verificationStatus: { type: String, default: 'NOT_STARTED' },
+      rejectionReason: { type: String, default: '' },
     },
     emergencyContact: {
       name: { type: String, default: '' },

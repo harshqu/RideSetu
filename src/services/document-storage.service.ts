@@ -166,3 +166,30 @@ export function getPrivateStorageProvider(): IDocumentStorageProvider {
   }
   return storageProviderInstance;
 }
+
+export class DocumentStorageService {
+  public static async saveDocument(params: {
+    userId: string;
+    category?: string;
+    fileBuffer: Buffer;
+    originalName: string;
+    mimeType: string;
+  }): Promise<{ publicUrl: string; storageKey: string }> {
+    const provider = getPrivateStorageProvider();
+    const result = await provider.uploadPrivateDocument(
+      params.fileBuffer,
+      params.originalName,
+      params.mimeType,
+      params.userId
+    );
+    const signedUrlRes = await provider.getSignedDocumentUrl(
+      result.storageKey,
+      params.userId,
+      'CUSTOMER'
+    );
+    return {
+      publicUrl: signedUrlRes.signedUrl,
+      storageKey: result.storageKey,
+    };
+  }
+}

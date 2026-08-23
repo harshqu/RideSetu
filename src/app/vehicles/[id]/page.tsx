@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { useCompare } from '@/context/CompareContext';
 import { formatINR } from '@/lib/utils';
+import { getVehicleImage, getVehicleAltText } from '@/config/vehicle-images';
 import {
   ShieldCheck,
   Star,
@@ -148,12 +149,13 @@ export default function VehicleDetailPage() {
           <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-5 shadow-sm space-y-4">
             <div className="aspect-[16/10] rounded-2xl overflow-hidden bg-slate-100 relative group">
               <Image
-                src={images[activeImageIndex] || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80'}
-                alt={vehicle.model}
+                src={images[activeImageIndex] || getVehicleImage(vehicle)}
+                alt={getVehicleAltText(vehicle)}
                 fill
                 priority
+                fetchPriority="high"
                 sizes="(max-width: 1024px) 100vw, 66vw"
-                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
               />
 
               <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-10">

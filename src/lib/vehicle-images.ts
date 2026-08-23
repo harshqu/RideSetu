@@ -1,52 +1,19 @@
+import { getVehicleImage } from '@/config/vehicle-images';
+
 export function getVehiclePhotos(vehicle: any): string[] {
+  const primaryImg = getVehicleImage(vehicle);
+  
   if (vehicle?.images && Array.isArray(vehicle.images) && vehicle.images.length > 0) {
-    const validRemoteImages = vehicle.images.filter((img: string) => img && img.startsWith('http'));
-    if (validRemoteImages.length >= 3) {
-      return validRemoteImages;
+    const validImages = vehicle.images.filter(
+      (img: string) => img && (img.startsWith('/') || img.startsWith('http'))
+    );
+    if (validImages.length >= 3) {
+      return validImages;
     }
   }
 
-  const category = (vehicle?.category || 'SCOOTER').toUpperCase();
-  const brand = (vehicle?.brand || '').toLowerCase();
-
-  if (category === 'MOTORCYCLE' || brand.includes('royal') || brand.includes('hero') || brand.includes('ktm')) {
-    return [
-      'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558980664-769d59546b3d?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
-    ];
-  }
-
-  if (category === 'CAR' || brand.includes('mahindra') || brand.includes('hyundai') || brand.includes('maruti')) {
-    return [
-      'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80',
-    ];
-  }
-
-  if (category === 'EV' || brand.includes('ather') || brand.includes('tata')) {
-    return [
-      'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558980664-769d59546b3d?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
-    ];
-  }
-
-  // Scooter Default
-  return [
-    'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1558980664-769d59546b3d?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
-  ];
+  // Return primary exact vehicle image guaranteed by centralized resolver
+  return [primaryImg, primaryImg, primaryImg];
 }
 
 export function getDestinationPhoto(slug: string): string {

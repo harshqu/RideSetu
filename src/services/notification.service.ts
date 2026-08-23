@@ -43,6 +43,25 @@ export class NotificationService {
     };
   }
 
+  public static async sendNotification(params: {
+    userId: string | mongoose.Types.ObjectId;
+    userRole?: any;
+    recipientRole?: RecipientRole;
+    type: NotificationType;
+    title: string;
+    message: string;
+    metadata?: Record<string, any>;
+  }): Promise<INotification | null> {
+    return this.createNotification({
+      userId: params.userId,
+      recipientRole: params.recipientRole || params.userRole || 'VENDOR',
+      type: params.type,
+      title: params.title,
+      message: params.message,
+      metadata: params.metadata,
+    });
+  }
+
   /**
    * Core dispatch method with Idempotency Guard & Failure Isolation
    */

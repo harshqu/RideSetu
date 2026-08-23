@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useCompare } from '@/context/CompareContext';
 import { formatINR } from '@/lib/utils';
 import { getVehiclePhotos } from '@/lib/vehicle-images';
+import { getVehicleImage, getVehicleAltText } from '@/config/vehicle-images';
 import {
   ShieldCheck,
   Star,
@@ -23,12 +24,14 @@ interface VehicleCardProps {
   vehicle: any;
   pickupDateTime?: string;
   returnDateTime?: string;
+  isPriority?: boolean;
 }
 
 export const VehicleCard: React.FC<VehicleCardProps> = ({
   vehicle,
   pickupDateTime,
   returnDateTime,
+  isPriority = false,
 }) => {
   const { addToCompare, isInCompare } = useCompare();
   const inCompare = isInCompare(vehicle._id);
@@ -53,11 +56,14 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
       <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden">
         <Image
           src={imgSrc}
-          alt={`${vehicle.brand} ${vehicle.model}`}
+          alt={getVehicleAltText(vehicle)}
           fill
+          priority={isPriority}
+          loading={isPriority ? 'eager' : 'lazy'}
+          fetchPriority={isPriority ? 'high' : 'auto'}
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          onError={() => setImgSrc('https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80')}
-          className="object-cover group-hover:scale-[1.03] transition-transform duration-250 ease-out"
+          onError={() => setImgSrc(getVehicleImage(vehicle))}
+          className="object-contain p-2 group-hover:scale-[1.03] transition-transform duration-250 ease-out"
         />
 
         {/* Gradient Scrim for Contrast */}

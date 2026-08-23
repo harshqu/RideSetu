@@ -22,3 +22,5 @@ export * from './VendorPayoutProfile';
 export * from './KYCVerification';
 export * from './OTPVerification';
 export * from './VendorDocument';
+export * from './GroupBooking';
+

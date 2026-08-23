@@ -3,7 +3,7 @@
  * Provides structured telemetry logging with automated secret redaction and correlation IDs.
  */
 
-import { crypto } from '@/lib/utils';
+import crypto from 'crypto';
 
 export type ObservabilityEventType =
   | 'AUTH_SUCCESS'
@@ -102,4 +102,18 @@ export function logObservabilityEvent(entry: Omit<ObservabilityLogEntry, 'timest
   }
 
   return fullEntry;
+}
+
+/**
+ * Non-blocking asynchronous observability logger for client-side events.
+ * Schedules telemetry processing via requestIdleCallback/setTimeout(..., 0) to avoid INP latency.
+ */
+export function logObservabilityEventAsync(entry: Omit<ObservabilityLogEntry, 'timestamp'>): void {
+  const schedule = typeof window !== 'undefined' && 'requestIdleCallback' in window
+    ? (window as any).requestIdleCallback
+    : (cb: () => void) => setTimeout(cb, 0);
+
+  schedule(() => {
+    logObservabilityEvent(entry);
+  });
 }

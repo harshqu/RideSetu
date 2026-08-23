@@ -141,6 +141,27 @@ export class PaymentService {
     return crypto.timingSafeEqual(expBuf, sigBuf);
   }
 
+  public static generateTestSignature(orderId: string, paymentId: string): string {
+    const keySecret = this.getKeySecret();
+    const body = `${orderId}|${paymentId}`;
+    return crypto
+      .createHmac('sha256', keySecret)
+      .update(body)
+      .digest('hex');
+  }
+
+  public static verifyPaymentSignature(params: {
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+  }): boolean {
+    return this.verifySignature({
+      orderId: params.razorpayOrderId,
+      paymentId: params.razorpayPaymentId,
+      signature: params.razorpaySignature,
+    });
+  }
+
   /**
    * Verify Razorpay webhook raw signature
    */

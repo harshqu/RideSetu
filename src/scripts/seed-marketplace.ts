@@ -24,13 +24,7 @@ const VEHICLE_TEMPLATES = [
     category: 'MOTORCYCLE',
     price: 1200,
     deposit: 2000,
-    images: [
-      'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558980664-769d59546b3d?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
-    ],
+    images: ['/images/vehicles/royal-enfield-himalayan-450.svg'],
   },
   {
     brand: 'Royal Enfield',
@@ -38,13 +32,7 @@ const VEHICLE_TEMPLATES = [
     category: 'MOTORCYCLE',
     price: 950,
     deposit: 1500,
-    images: [
-      'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558980664-769d59546b3d?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
-    ],
+    images: ['/images/vehicles/royal-enfield-classic-350.svg'],
   },
   {
     brand: 'Honda',
@@ -52,13 +40,7 @@ const VEHICLE_TEMPLATES = [
     category: 'SCOOTER',
     price: 450,
     deposit: 1000,
-    images: [
-      'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558980664-769d59546b3d?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
-    ],
+    images: ['/images/vehicles/honda-activa-6g.svg'],
   },
   {
     brand: 'TVS',
@@ -66,13 +48,7 @@ const VEHICLE_TEMPLATES = [
     category: 'SCOOTER',
     price: 460,
     deposit: 1000,
-    images: [
-      'https://images.unsplash.com/photo-1558980664-769d59546b3d?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1558980664-769d59546b3d?auto=format&fit=crop&w=800&q=80',
-    ],
+    images: ['/images/vehicles/tvs-jupiter-125.svg'],
   },
   {
     brand: 'Mahindra',
@@ -80,13 +56,7 @@ const VEHICLE_TEMPLATES = [
     category: 'CAR',
     price: 3500,
     deposit: 5000,
-    images: [
-      'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80',
-    ],
+    images: ['/images/vehicles/mahindra-thar.svg'],
   },
   {
     brand: 'Hyundai',

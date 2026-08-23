@@ -18,6 +18,7 @@ import connectToDatabase from '@/lib/mongodb';
 
 export interface CreateBookingDTO {
   customerId: string;
+  customerVehicleId?: string;
   vehicleId: string;
   pickupDateTime: string | Date;
   returnDateTime: string | Date;
@@ -129,6 +130,7 @@ export class BookingService {
       const createdBooking = await Booking.create({
         bookingNumber,
         customerId: new mongoose.Types.ObjectId(dto.customerId),
+        customerVehicleId: dto.customerVehicleId ? new mongoose.Types.ObjectId(dto.customerVehicleId) : undefined,
         vendorId: vehicle.vendorId,
         vehicleId: vehicle._id,
         destinationId: vehicle.destinationId,

@@ -15,6 +15,8 @@ import {
   IndianRupee,
 } from 'lucide-react';
 
+import { getVehicleImage, getVehicleAltText } from '@/config/vehicle-images';
+
 interface VehiclePreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,9 +30,9 @@ export default function VehiclePreviewModal({
 }: VehiclePreviewModalProps) {
   if (!isOpen || !vehicle) return null;
 
-  const images = vehicle.images?.length
-    ? vehicle.images
-    : ['https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80'];
+  const primaryImage = getVehicleImage(vehicle);
+  const altText = getVehicleAltText(vehicle);
+  const images = vehicle?.images?.length ? vehicle.images : [primaryImage];
 
   const depositEnabled = vehicle.securityDepositEnabled ?? true;
   const depositAmount = depositEnabled ? (vehicle.securityDepositAmount ?? vehicle.securityDeposit ?? 1000) : 0;
@@ -52,7 +54,7 @@ export default function VehiclePreviewModal({
           {/* Main Image Gallery */}
           <div className="space-y-3">
             <div className="relative aspect-video rounded-2xl bg-slate-100 overflow-hidden border border-slate-200">
-              <Image src={images[0]} alt={vehicle.model} fill className="object-cover" />
+              <Image src={images[0] || primaryImage} alt={altText} fill className="object-contain p-2" />
             </div>
             {images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-1">

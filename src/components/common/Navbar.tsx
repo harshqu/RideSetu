@@ -260,13 +260,15 @@ export const Navbar: React.FC = () => {
                         <Store className="w-4 h-4 text-amber-600" /> Partner Portal
                       </Link>
                     ) : (
-                      <Link
-                        href="/dashboard"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl"
-                      >
-                        <Compass className="w-4 h-4 text-brand-orange" /> Rider Dashboard
-                      </Link>
+                      <>
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl"
+                        >
+                          <Compass className="w-4 h-4 text-brand-orange" /> Rider Dashboard
+                        </Link>
+                      </>
                     )}
 
                     <div className="border-t border-slate-100 my-1"></div>
