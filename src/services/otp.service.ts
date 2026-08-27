@@ -3,7 +3,7 @@ import { OTPChallenge, IOTPChallenge } from '@/models/OTPChallenge';
 import crypto from 'crypto';
 
 export type OTPMethod = 'SMS' | 'EMAIL';
-export type OTPPurpose = 'SIGNUP' | 'LOGIN' | 'PASSWORD_RESET';
+export type OTPPurpose = 'SIGNUP' | 'LOGIN' | 'PASSWORD_RESET' | 'VERIFICATION';
 export type OTPErrorCode =
   | 'SUCCESS'
   | 'OTP_EXPIRED'
