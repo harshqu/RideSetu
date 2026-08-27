@@ -282,7 +282,9 @@ export class OTPService {
     };
   }
 
-  public static async consumeChallenge(params: string | { challengeId: string }): Promise<{ success: boolean; isConsumed?: boolean }> {
+  public static async consumeChallenge(
+    params: string | { challengeId: string; identifier?: string; method?: OTPMethod }
+  ): Promise<{ success: boolean; isConsumed?: boolean; error?: string }> {
     const challengeId = typeof params === 'string' ? params : params.challengeId;
     const challenge = IN_MEMORY_CHALLENGES.get(challengeId);
     let wasConsumed = false;
