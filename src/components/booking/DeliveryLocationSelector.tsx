@@ -23,29 +23,43 @@ export interface DeliveryLocationData {
   locationType: 'VENDOR_PICKUP' | 'DOORSTEP' | 'HOTEL' | 'HOSTEL' | 'OTHER';
   locationSource: 'CURRENT_LOCATION' | 'GOOGLE_PLACE' | 'MAP_PIN' | 'MANUAL';
   address: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  pincode?: string;
+  lat?: number;
+  lng?: number;
+  latitude?: number;
+  longitude?: number;
+  placeId?: string;
   houseOrRoom?: string;
   buildingName?: string;
   landmark?: string;
-  city: string;
-  state: string;
-  country: string;
-  pincode?: string;
-  latitude: number;
-  longitude: number;
-  placeId?: string;
+  instructions?: string;
   formattedAddress?: string;
   contactName?: string;
   contactPhone?: string;
   deliveryInstructions?: string;
+  hotelName?: string;
+  roomNumber?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  deliveryFee?: number;
+  hubAddress?: string;
+  distanceKm?: number;
 }
 
+export type DeliveryLocation = DeliveryLocationData;
+
 interface DeliveryLocationSelectorProps {
-  destinationCity: string;
+  destinationCity?: string;
   initialType?: string;
   vendorDeliveryRadiusKm?: number;
   baseDeliveryFee?: number;
-  onLocationConfirmed: (location: DeliveryLocationData) => void;
+  onLocationConfirmed?: (location: DeliveryLocationData) => void;
   savedLocations?: any[];
+  value?: DeliveryLocationData;
+  onChange?: (location: DeliveryLocationData) => void;
 }
 
 export default function DeliveryLocationSelector({
@@ -55,6 +69,8 @@ export default function DeliveryLocationSelector({
   baseDeliveryFee = 100,
   onLocationConfirmed,
   savedLocations = [],
+  value,
+  onChange,
 }: DeliveryLocationSelectorProps) {
   const [deliveryMode, setDeliveryMode] = useState<'VENDOR_PICKUP' | 'HOTEL' | 'DOORSTEP'>(
     initialType === 'VENDOR_PICKUP' ? 'VENDOR_PICKUP' : initialType === 'HOTEL' ? 'HOTEL' : 'DOORSTEP'
@@ -338,7 +354,8 @@ export default function DeliveryLocationSelector({
     };
 
     setIsConfirmed(true);
-    onLocationConfirmed(finalData);
+    if (onLocationConfirmed) onLocationConfirmed(finalData);
+    if (onChange) onChange(finalData);
   };
 
   return (

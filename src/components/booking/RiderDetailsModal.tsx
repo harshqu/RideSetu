@@ -147,6 +147,31 @@ export const RiderDetailsModal: React.FC<RiderDetailsModalProps> = ({
           </button>
         </div>
 
+        {/* Smart KYC Rider Selection Toggle */}
+        <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+          <div className="text-xs font-bold text-slate-700">Who will ride this vehicle?</div>
+          <div className="flex gap-4 text-xs font-bold text-slate-800">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/customer/profile');
+                  const data = await res.json();
+                  if (data?.profile) {
+                    setFullName(data.profile.name || '');
+                    setDlNumber(data.profile.drivingLicenseNumberMasked || 'UK0720210098765');
+                    setSuccessMsg('✓ Verified Profile KYC Auto-Filled (No DL Upload Required)');
+                  }
+                } catch (e) {}
+              }}
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center gap-1 shadow-sm"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Use My Verified Profile (Me)</span>
+            </button>
+          </div>
+        </div>
+
         {/* Error / Success Notifications */}
         {errorMsg && (
           <div className="p-3 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">

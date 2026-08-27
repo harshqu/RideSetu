@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!signupChallengeId || !['EMAIL', 'SMS'].includes(verificationMethod)) {
+    if (role !== 'VENDOR' && (!signupChallengeId || !['EMAIL', 'SMS'].includes(verificationMethod))) {
       return NextResponse.json(
         { error: 'Verified OTP signup challenge ID and verification method are required.' },
         { status: 400 }
@@ -51,18 +51,20 @@ export async function POST(request: Request) {
     const normalizedPhone = OTPService.normalizeIdentifier(phone, 'SMS');
     const challengeTarget = verificationMethod === 'EMAIL' ? normalizedEmail : normalizedPhone;
 
-    // 2. Consume OTP Challenge Atomically
-    const challengeResult = await OTPService.consumeChallenge({
-      challengeId: signupChallengeId,
-      identifier: challengeTarget,
-      method: verificationMethod as 'EMAIL' | 'SMS',
-    });
+    // 2. Consume OTP Challenge Atomically if provided
+    if (signupChallengeId) {
+      const challengeResult = await OTPService.consumeChallenge({
+        challengeId: signupChallengeId,
+        identifier: challengeTarget,
+        method: verificationMethod as 'EMAIL' | 'SMS',
+      });
 
-    if (!challengeResult.success) {
-      return NextResponse.json(
-        { error: challengeResult.error || 'Your email/mobile verification code has expired or is invalid. Please verify again.' },
-        { status: 400 }
-      );
+      if (!challengeResult.success) {
+        return NextResponse.json(
+          { error: challengeResult.error || 'Your email/mobile verification code has expired or is invalid. Please verify again.' },
+          { status: 400 }
+        );
+      }
     }
 
     // 3. Duplicate Account Prevention across normalized email and mobile

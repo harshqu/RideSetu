@@ -18,6 +18,9 @@ import {
   Store,
   LogOut,
   Bell,
+  ShoppingCart,
+  Calendar,
+  User,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -30,6 +33,32 @@ export const Navbar: React.FC = () => {
   const [isDestDropdownOpen, setDestDropdownOpen] = useState(false);
   const [isUserMenuOpen, setUserMenuOpen] = useState(false);
   const [isMobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  // Dynamic Cart Count State
+  const [cartCount, setCartCount] = useState<number>(0);
+
+  const fetchCartCount = async () => {
+    try {
+      const res = await fetch('/api/group-bookings');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.session && Array.isArray(data.session.items)) {
+          setCartCount(data.session.items.length);
+        } else {
+          setCartCount(0);
+        }
+      }
+    } catch {
+      // Silently continue
+    }
+  };
+
+  useEffect(() => {
+    fetchCartCount();
+    const handleCartUpdated = () => fetchCartCount();
+    window.addEventListener('ridesetu_cart_updated', handleCartUpdated);
+    return () => window.removeEventListener('ridesetu_cart_updated', handleCartUpdated);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -102,7 +131,18 @@ export const Navbar: React.FC = () => {
           </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden lg:flex items-center gap-7 text-xs font-extrabold text-slate-700">
+          <nav className="hidden lg:flex items-center gap-6 text-xs font-extrabold text-slate-700">
+            {/* Vendor Marketplace Search */}
+            <Link
+              href="/vendors"
+              className={`flex items-center gap-1.5 py-2 hover:text-brand-orange transition-colors focus-ring rounded-lg ${
+                pathname.startsWith('/vendors') ? 'text-brand-orange font-black' : ''
+              }`}
+            >
+              <Store className="w-3.5 h-3.5 text-brand-orange" />
+              <span>Rental Partners</span>
+            </Link>
+
             {/* Destination Dropdown */}
             <div className="relative" onMouseLeave={() => setDestDropdownOpen(false)}>
               <button
@@ -166,6 +206,20 @@ export const Navbar: React.FC = () => {
               {compareList.length > 0 && (
                 <span className="w-4 h-4 rounded-full bg-brand-orange text-white text-[10px] font-extrabold flex items-center justify-center -ml-0.5 shadow-sm">
                   {compareList.length}
+                </span>
+              )}
+            </Link>
+
+            {/* Rental Cart Link with Dynamic Badge */}
+            <Link
+              href="/book/cart"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-brand-orange hover:bg-amber-100 transition-colors font-black relative"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              <span>Cart</span>
+              {cartCount > 0 && (
+                <span className="w-5 h-5 rounded-full bg-brand-orange text-white text-[10px] font-black flex items-center justify-center shadow-sm">
+                  {cartCount}
                 </span>
               )}
             </Link>
@@ -266,7 +320,28 @@ export const Navbar: React.FC = () => {
                           onClick={() => setUserMenuOpen(false)}
                           className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl"
                         >
-                          <Compass className="w-4 h-4 text-brand-orange" /> Rider Dashboard
+                          <Compass className="w-4 h-4 text-brand-orange" /> My Dashboard
+                        </Link>
+                        <Link
+                          href="/dashboard/trips"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl"
+                        >
+                          <Calendar className="w-4 h-4 text-emerald-600" /> My Trips
+                        </Link>
+                        <Link
+                          href="/dashboard/profile"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl"
+                        >
+                          <User className="w-4 h-4 text-amber-600" /> My Profile
+                        </Link>
+                        <Link
+                          href="/dashboard/profile"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-xl"
+                        >
+                          <ShieldCheck className="w-4 h-4 text-purple-600" /> Identity & Documents
                         </Link>
                       </>
                     )}
@@ -305,6 +380,17 @@ export const Navbar: React.FC = () => {
 
           {/* Mobile Menu Button */}
           <div className="lg:hidden flex items-center gap-2">
+            <Link
+              href="/book/cart"
+              className="p-2 rounded-2xl bg-amber-50 border border-amber-200 text-brand-orange flex items-center gap-1 font-black text-xs"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {cartCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-brand-orange text-white text-[9px] flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
             <button
               type="button"
               onClick={() => setMobileDrawerOpen(true)}
@@ -347,7 +433,7 @@ function NotificationBellDropdown({ userRole }: { userRole: string }) {
 
   useEffect(() => {
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 30000); // 30s polling
+    const interval = setInterval(fetchNotifs, 30000);
     return () => clearInterval(interval);
   }, []);
 

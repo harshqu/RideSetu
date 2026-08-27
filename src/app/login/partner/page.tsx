@@ -53,7 +53,7 @@ function PartnerLoginForm() {
       if (!res.success) {
         throw new Error(res.error || 'Partner sign in failed.');
       }
-      router.push('/partner/dashboard');
+      window.location.href = '/partner/dashboard';
     } catch (err: any) {
       setError(err.message || 'Partner login failed.');
     } finally {

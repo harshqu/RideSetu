@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import SearchWidget from '@/components/marketplace/SearchWidget';
+import DiscoverySearchBar from '@/components/discovery/DiscoverySearchBar';
 import VehicleCard from '@/components/marketplace/VehicleCard';
 import StatCounter from '@/components/ui/StatCounter';
 import ScrollReveal from '@/components/ui/ScrollReveal';
@@ -116,7 +117,7 @@ export default function HomePage() {
           </p>
 
           <div className="pt-2 sm:pt-4 animate-stagger-4 w-full">
-            <SearchWidget />
+            <DiscoverySearchBar />
           </div>
 
           <div className="pt-2 sm:pt-4 flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-slate-300 text-xs font-semibold">

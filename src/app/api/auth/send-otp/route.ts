@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
-import { User } from '@/models/User';
 import { OTPService } from '@/services/otp.service';
 import { EmailService } from '@/services/email.service';
 import { SMSService } from '@/services/sms.service';
@@ -22,17 +21,6 @@ export async function POST(request: NextRequest) {
 
     const normalizedIdentifier = OTPService.normalizeIdentifier(identifier, method);
 
-    // Duplicate Check: Check if an existing account already uses this identifier
-    const query = method === 'EMAIL' ? { email: normalizedIdentifier } : { phone: normalizedIdentifier };
-    const existingUser = await User.findOne(query).lean();
-
-    if (existingUser && (existingUser.emailVerified || existingUser.phoneVerified)) {
-      return NextResponse.json(
-        { error: `An account with this ${method === 'EMAIL' ? 'email' : 'mobile number'} is already registered. Please sign in.` },
-        { status: 409 }
-      );
-    }
-
     // Create OTP Challenge
     const challenge = await OTPService.createChallenge({
       identifier,
@@ -48,10 +36,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send OTP via Email or SMS
+    // Send OTP via Real SMS Gateway or Email Service
     let deliverySuccess = false;
     let deliveryError: string | undefined = undefined;
-    let isDevFallback = false;
 
     if (method === 'EMAIL') {
       const emailResult = await EmailService.sendVerificationEmail({
@@ -60,7 +47,6 @@ export async function POST(request: NextRequest) {
       });
       deliverySuccess = emailResult.success;
       deliveryError = emailResult.error;
-      isDevFallback = Boolean(emailResult.isDevFallback);
     } else {
       const smsResult = await SMSService.sendVerificationSMS({
         toPhone: normalizedIdentifier,
@@ -68,46 +54,46 @@ export async function POST(request: NextRequest) {
       });
       deliverySuccess = smsResult.success;
       deliveryError = smsResult.error;
-      isDevFallback = Boolean(smsResult.isDevFallback);
     }
 
+    // Strict Delivery Guard: If external SMS/Email provider rejects delivery, return error & do NOT pretend delivery succeeded!
     if (!deliverySuccess) {
       return NextResponse.json(
-        { error: deliveryError || 'We couldn\'t send the verification code. Please try again shortly.' },
+        {
+          success: false,
+          error: deliveryError || 'Real SMS delivery failed. Please check provider credentials in .env.local.',
+        },
         { status: 500 }
       );
     }
 
     // Audit Log (NO PLAINTEXT OTP LOGGED)
+    const maskedId = method === 'SMS' 
+      ? normalizedIdentifier.replace(/(\+\d{2}\d{2})\d{4}(\d{4})/, '$1****$2')
+      : normalizedIdentifier.replace(/(.{2})(.*)(?=@)/, '$1***');
+
     await AuditLog.create({
       action: 'OTP_SENT',
       userId: 'system',
       userRole: 'SYSTEM',
       resourceType: 'AUTH',
       details: {
-        identifier: normalizedIdentifier,
+        identifier: maskedId,
         method,
         purpose,
         challengeId: challenge.challengeId,
       },
     }).catch(() => {});
 
-    const responsePayload: Record<string, any> = {
+    return NextResponse.json({
       success: true,
       challengeId: challenge.challengeId,
       expiresIn: challenge.expiresIn,
       resendAvailableIn: challenge.resendAvailableIn,
       message: `Verification code sent to your ${method === 'EMAIL' ? 'email address' : 'mobile number'}.`,
-    };
-
-    // Attach devOtp ONLY in development mode for convenience
-    if (process.env.NODE_ENV !== 'production' && isDevFallback) {
-      responsePayload.devOtp = challenge.rawOtp;
-    }
-
-    return NextResponse.json(responsePayload);
+    });
   } catch (error: any) {
-    console.error('[API Send OTP Error]:', error);
+    console.error('[API Send OTP Error]:', error?.message || error);
     return NextResponse.json(
       { error: 'An unexpected error occurred while sending verification code.' },
       { status: 500 }

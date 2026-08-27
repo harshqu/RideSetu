@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 import DeliveryLocationSelector, { DeliveryLocationData } from '@/components/booking/DeliveryLocationSelector';
 import RiderDetailsModal from '@/components/booking/RiderDetailsModal';
 import AddVehicleModal from '@/components/booking/AddVehicleModal';
+import AuthModal from '@/components/common/AuthModal';
 
 const PaymentModal = dynamic(() => import('@/components/booking/PaymentModal'), { ssr: false });
 import { getVehicleImage, getVehicleAltText } from '@/config/vehicle-images';
@@ -62,6 +63,7 @@ function BookingFlowContent() {
   const [selectedRiderVehicle, setSelectedRiderVehicle] = useState<any>(null);
   const [isRiderModalOpen, setRiderModalOpen] = useState(false);
   const [isAddVehicleModalOpen, setAddVehicleModalOpen] = useState(false);
+  const [isAuthModalOpen, setAuthModalOpen] = useState(false);
 
   // Payment state
   const [isPaymentOpen, setPaymentOpen] = useState(false);
@@ -174,12 +176,16 @@ function BookingFlowContent() {
   const handleLocationConfirmed = (location: DeliveryLocationData) => {
     setDeliveryLocationData(location);
     setPickupType(location.locationType);
-    setPickupLocation(location.address || location.city);
+    setPickupLocation(location.address || location.city || '');
     syncGroupBooking(undefined, undefined, location);
   };
 
   const handleInitiatePayment = async () => {
     if (!groupBooking) return;
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
     try {
       setInitiatingPayment(true);
       setError(null);
@@ -630,6 +636,13 @@ function BookingFlowContent() {
             returnTime={returnTime}
           />
         )}
+
+        {/* Auth Modal for Unauthenticated Booking Guard */}
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setAuthModalOpen(false)}
+          redirectUrl={`/book/${currentVehicleId}`}
+        />
 
         {/* Razorpay Payment Modal */}
         {isPaymentOpen && orderData && (

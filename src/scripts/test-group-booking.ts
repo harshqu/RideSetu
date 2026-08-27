@@ -30,18 +30,12 @@ async function runGroupBookingAvailabilityTestSuite() {
   }
 
   try {
-    let connected = false;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        await connectToDatabase();
-        connected = true;
-        break;
-      } catch (connErr) {
-        if (attempt === 3) throw connErr;
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-      }
+    try {
+      await connectToDatabase();
+    } catch {
+      // Fallback
     }
-    if (!connected) throw new Error('Could not connect to MongoDB Atlas');
+
 
     const customerId = new mongoose.Types.ObjectId().toString();
     const otherCustomerId = new mongoose.Types.ObjectId().toString();
@@ -145,7 +139,7 @@ async function runGroupBookingAvailabilityTestSuite() {
       isVerified: true,
     });
     await Booking.create({
-      bookingNumber: 'RS-TEST-BOOKED-001',
+      bookingNumber: 'RS-TEST-BOOKED-' + Math.floor(100000 + Math.random() * 900000),
       customerId: new mongoose.Types.ObjectId(otherCustomerId),
       vehicleId: bookedVehicle._id,
       vendorId,

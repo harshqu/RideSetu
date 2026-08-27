@@ -1,102 +1,168 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { FileText, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
-import { StatusBadge } from '@/components/ui/Badge';
-import { DashboardSkeleton } from '@/components/ui/Skeleton';
+import React, { useEffect, useState } from 'react';
+import Navbar from '@/components/common/Navbar';
+import { ShieldCheck, CheckCircle2, XCircle, AlertCircle, RefreshCw, Eye, FileText } from 'lucide-react';
 
-export default function OpsKycPage() {
-  const [queue, setQueue] = useState<any[]>([]);
+export default function AdminKycPage() {
+  const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('Document image is blurry or illegible');
 
-  const loadKyc = async () => {
+  const fetchKycSubmissions = async () => {
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      const res = await fetch('/api/admin/kyc');
+      const res = await fetch('/api/ops/kyc');
       const data = await res.json();
-      if (data.queue) setQueue(data.queue);
-    } catch (err) {
-      console.error('KYC load error:', err);
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to load KYC submissions');
+      }
+
+      setSubmissions(data.submissions || []);
+    } catch (err: any) {
+      setError(err.message || 'Error loading KYC submissions');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadKyc();
+    fetchKycSubmissions();
   }, []);
 
-  const handleKycAction = async (id: string, action: 'APPROVE' | 'REJECT') => {
+  const handleReview = async (kycId: string, action: 'APPROVE' | 'REJECT') => {
     try {
-      const res = await fetch(`/api/admin/kyc/${id}`, {
-        method: 'PATCH',
+      const res = await fetch(`/api/ops/kyc/${kycId}/review`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, reason: action === 'REJECT' ? 'Document unreadable' : undefined }),
+        body: JSON.stringify({
+          action,
+          rejectionReason: action === 'REJECT' ? rejectionReason : '',
+        }),
       });
-      if (res.ok) loadKyc();
-    } catch (err) {
-      alert('KYC verification action failed');
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'KYC review failed');
+      }
+
+      setReviewingId(null);
+      fetchKycSubmissions();
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="border-b border-slate-200 pb-4">
-        <h1 className="text-2xl font-black font-heading text-slate-900 flex items-center gap-2">
-          <FileText className="w-6 h-6 text-emerald-600" /> Customer KYC & Driving License Review Queue
-        </h1>
-        <p className="text-xs text-slate-600 font-medium mt-1">
-          Authorized verification queue for customer Driving Licences, identity documents, and motor category eligibility.
-        </p>
-      </div>
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-16">
+      <Navbar />
 
-      {loading ? (
-        <DashboardSkeleton />
-      ) : (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="bg-slate-100 text-slate-900 font-extrabold uppercase text-[10px] border-b border-slate-200">
-                <th className="py-3 px-4 rounded-l-xl">Rider Name</th>
-                <th className="py-3 px-4">DL Number</th>
-                <th className="py-3 px-4">DL Expiry</th>
-                <th className="py-3 px-4">Vehicle Class</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right rounded-r-xl">Verification Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {queue.map((item) => (
-                <tr key={item._id} className="hover:bg-amber-50/50 transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-slate-900 font-heading">{item.customerName || item.name}</td>
-                  <td className="py-3.5 px-4 font-mono text-emerald-700 font-bold">{item.dlNumber || 'UK0720240012345'}</td>
-                  <td className="py-3.5 px-4 text-slate-700 font-medium">2030-12-31</td>
-                  <td className="py-3.5 px-4 text-slate-600 font-medium">MCWG / LMV</td>
-                  <td className="py-3.5 px-4"><StatusBadge status={item.kycStatus || 'UNDER_REVIEW'} size="sm" /></td>
-                  <td className="py-3.5 px-4 text-right space-x-2">
-                    {item.kycStatus !== 'VERIFIED' && (
-                      <>
-                        <button
-                          onClick={() => handleKycAction(item._id, 'APPROVE')}
-                          className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] shadow-sm min-h-[36px]"
-                        >
-                          Approve DL
-                        </button>
-                        <button
-                          onClick={() => handleKycAction(item._id, 'REJECT')}
-                          className="px-3.5 py-1.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-300 font-bold text-[11px] min-h-[36px]"
-                        >
-                          Reject
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12 w-full space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs font-extrabold text-brand-orange uppercase tracking-wider">RideSetu Operations</div>
+            <h1 className="text-2xl sm:text-3xl font-black font-heading text-navy-950">Identity Verification Console</h1>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => fetchKycSubmissions()}
+            className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 shadow-sm"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Refresh Submissions</span>
+          </button>
         </div>
-      )}
+
+        {loading ? (
+          <div className="py-20 text-center space-y-3">
+            <div className="w-10 h-10 border-4 border-navy-900 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-xs font-semibold text-slate-500">Loading KYC queue...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 text-center space-y-2 text-rose-700">
+            <AlertCircle className="w-8 h-8 mx-auto" />
+            <p className="text-xs font-bold">{error}</p>
+          </div>
+        ) : submissions.length === 0 ? (
+          <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-3 max-w-md mx-auto">
+            <ShieldCheck className="w-12 h-12 text-emerald-500 mx-auto" />
+            <h3 className="text-base font-black text-slate-900">Zero Pending Submissions</h3>
+            <p className="text-xs text-slate-500 font-semibold">All customer identity documents are verified.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {submissions.map((sub) => (
+              <div key={sub._id} className="bg-white rounded-3xl border border-slate-200 p-6 space-y-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                      STATUS: {sub.status}
+                    </span>
+                    <h3 className="text-sm font-black text-slate-900 mt-1">
+                      {sub.documentType?.replace('_', ' ')} — {sub.maskedLicenceNumber}
+                    </h3>
+                  </div>
+                  <div className="text-right text-xs font-semibold text-slate-500">
+                    Customer: {sub.userId?.name || 'Rider'} ({sub.userId?.phone})
+                  </div>
+                </div>
+
+                {reviewingId === sub._id ? (
+                  <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-3">
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-rose-900">Reason for Rejection</label>
+                      <input
+                        type="text"
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleReview(sub._id, 'REJECT')}
+                        className="px-4 py-2 bg-rose-600 text-white font-bold text-xs rounded-xl"
+                      >
+                        Confirm Rejection
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReviewingId(null)}
+                        className="px-4 py-2 bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleReview(sub._id, 'APPROVE')}
+                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+                    >
+                      Approve & Verify DL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReviewingId(sub._id)}
+                      className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition-all"
+                    >
+                      Reject Submission
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
