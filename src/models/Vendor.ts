@@ -41,6 +41,9 @@ export interface IVendor extends Document {
   commissionRate: number; // e.g., 15 for 15%
   deliveryRadiusKm: number;
   baseDeliveryFee: number;
+  hubPickupAvailable?: boolean;
+  doorstepDeliveryAvailable?: boolean;
+  hostelDeliveryAvailable?: boolean;
   bankAccountReference?: string; // Stored securely / tokenized
   documents: {
     tradeLicenseUrl?: string;
