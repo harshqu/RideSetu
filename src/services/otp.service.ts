@@ -11,6 +11,7 @@ export type OTPErrorCode =
   | 'OTP_ATTEMPTS_EXCEEDED'
   | 'OTP_ALREADY_USED'
   | 'OTP_RESEND_COOLDOWN'
+  | 'OTP_RATE_LIMITED'
   | 'CHALLENGE_NOT_FOUND';
 
 const IN_MEMORY_CHALLENGES = new Map<string, any>();
