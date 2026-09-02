@@ -127,7 +127,7 @@ async function runCustomerProfileTestSuite() {
     pass('15. Mobile number immutability without OTP verification');
 
     // 16-20: Ownership Security & Authentication Guard
-    const userToken = signJwt({ userId: customerUser._id.toString(), email: testEmail, role: 'CUSTOMER' });
+    const userToken = signJwt({ userId: customerUser._id.toString(), name: 'Harshwardhan Profile Test', email: testEmail, role: 'CUSTOMER' });
     assert(userToken && userToken.length > 20);
     pass('16. JWT token generation for profile owner');
     const verifyToken = verifyJwt(userToken);
