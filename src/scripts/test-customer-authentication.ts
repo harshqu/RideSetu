@@ -115,7 +115,7 @@ async function runCustomerAuthenticationTestSuite() {
       method: 'SMS',
       purpose: 'SIGNUP',
     });
-    assert(reVerify.verified || reVerify.code === 'SUCCESS' || reVerify.code === 'OK');
+    assert(reVerify.verified || reVerify.code === 'SUCCESS');
     pass('10. OTP challenge verification idempotency');
 
     // 11. Challenge Consumption
