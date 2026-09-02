@@ -16,6 +16,10 @@ export type OTPErrorCode =
 
 const IN_MEMORY_CHALLENGES = new Map<string, any>();
 
+export function hashOTPCode(otp: string, salt: string): string {
+  return crypto.createHash('sha256').update(`${otp}:${salt}:RIDESETU_PEPPER`).digest('hex');
+}
+
 export class OTPService {
   private static PEPPER = process.env.OTP_PEPPER || 'RIDESETU_SECURE_DEV_PEPPER_2026';
 
