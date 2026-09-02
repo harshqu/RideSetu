@@ -23,11 +23,11 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
     return null;
   }
 
-  if (cached.conn && mongoose.connection.readyState === 1) {
+  if (cached.conn && (mongoose.connection.readyState as number) === 1) {
     return cached.conn;
   }
 
-  if (mongoose.connection.readyState === 1) {
+  if ((mongoose.connection.readyState as number) === 1) {
     cached.conn = mongoose;
     return mongoose;
   }
@@ -54,7 +54,7 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
 
   try {
     cached.conn = await cached.promise;
-    if (cached.conn && mongoose.connection.readyState === 1) {
+    if (cached.conn && (mongoose.connection.readyState as number) === 1) {
       return cached.conn;
     }
     return null;

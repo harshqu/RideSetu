@@ -582,6 +582,36 @@ export default function CustomerDashboardPage() {
         </div>
       )}
 
+      {/* Profile & KYC Summary Card */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-navy-950 text-white flex items-center justify-center font-black text-lg border border-brand-orange">
+            {user?.name ? user.name[0].toUpperCase() : 'U'}
+          </div>
+          <div className="space-y-0.5">
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Your Profile</div>
+            <div className="font-extrabold text-navy-950 text-sm">{user?.name || 'RideSetu Member'}</div>
+            <div className="text-xs font-bold text-slate-600 flex flex-wrap items-center gap-2">
+              <span className="text-emerald-700 font-extrabold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                KYC: {profile?.drivingLicenseStatus === 'VERIFIED' ? '✓ Driving License Verified' : '✓ Mobile Verified'}
+              </span>
+              {profile?.aadhaarNumberMasked && (
+                <span className="text-emerald-700 font-extrabold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                  ✓ Aadhaar Added
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <Link
+          href="/dashboard/profile"
+          className="px-4 py-2 bg-navy-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-sm transition-all self-start sm:self-auto"
+        >
+          Manage Profile
+        </Link>
+      </div>
+
       {/* Navigation Tabs Bar */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-200 no-scrollbar">
         {[

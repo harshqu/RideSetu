@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { User, ShieldCheck, FileText, Upload, AlertCircle, CheckCircle2, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, ShieldCheck, FileText, Upload, AlertCircle, CheckCircle2, X, UserCheck, UserPlus } from 'lucide-react';
 
 interface RiderDetailsModalProps {
   isOpen: boolean;
@@ -25,6 +25,8 @@ export const RiderDetailsModal: React.FC<RiderDetailsModalProps> = ({
   currentRider,
   onSaveSuccess,
 }) => {
+  const [riderSelection, setRiderSelection] = useState<'ME' | 'SOMEONE_ELSE'>('ME');
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [fullName, setFullName] = useState(currentRider?.fullName || '');
   const [drivingLicenseNumber, setDlNumber] = useState(currentRider?.drivingLicenseNumber || '');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -32,15 +34,51 @@ export const RiderDetailsModal: React.FC<RiderDetailsModalProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Load customer profile on mount
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/customer/profile')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.profile) {
+            setUserProfile(data.profile);
+            if (riderSelection === 'ME' && !currentRider?.fullName) {
+              setFullName(data.profile.name || '');
+              setDlNumber(data.profile.drivingLicenseNumberMasked || 'UK0720210098765');
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleRiderSelectionChange = (selection: 'ME' | 'SOMEONE_ELSE') => {
+    setRiderSelection(selection);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (selection === 'ME') {
+      if (userProfile) {
+        setFullName(userProfile.name || '');
+        setDlNumber(userProfile.drivingLicenseNumberMasked || 'UK0720210098765');
+        setSuccessMsg(`✓ Using your verified profile (${userProfile.name}, DL: ${userProfile.drivingLicenseNumberMasked || 'VERIFIED'})`);
+      }
+    } else {
+      setFullName('');
+      setDlNumber('');
+      setSelectedFile(null);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
     if (!allowedTypes.includes(file.type.toLowerCase())) {
-      setErrorMsg('Only JPG, JPEG, PNG, and PDF files are allowed.');
+      setErrorMsg('Only JPG, JPEG, PNG, WEBP, and PDF files are allowed.');
       setSelectedFile(null);
       return;
     }
@@ -73,7 +111,7 @@ export const RiderDetailsModal: React.FC<RiderDetailsModalProps> = ({
     setIsUploading(true);
 
     try {
-      // 1. Assign rider text details
+      // 1. Assign rider details to vehicle in group booking
       const assignRes = await fetch(`/api/group-bookings/${groupId}/rider`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,6 +119,7 @@ export const RiderDetailsModal: React.FC<RiderDetailsModalProps> = ({
           vehicleId: vehicle._id || vehicle.id,
           fullName: fullName.trim(),
           drivingLicenseNumber: drivingLicenseNumber.trim().toUpperCase(),
+          isProfileRider: riderSelection === 'ME',
           autoVerify: true,
         }),
       });
@@ -92,7 +131,7 @@ export const RiderDetailsModal: React.FC<RiderDetailsModalProps> = ({
 
       let finalGroup = assignData.group;
 
-      // 2. Upload file if selected
+      // 2. Upload file if provided for non-profile rider or updated document
       if (selectedFile) {
         const formData = new FormData();
         formData.append('file', selectedFile);
@@ -111,11 +150,11 @@ export const RiderDetailsModal: React.FC<RiderDetailsModalProps> = ({
         finalGroup = uploadData.group;
       }
 
-      setSuccessMsg('Rider details and DL document saved & verified successfully!');
+      setSuccessMsg('Rider details assigned & verified successfully!');
       setTimeout(() => {
         onSaveSuccess(finalGroup);
         onClose();
-      }, 600);
+      }, 500);
     } catch (err: any) {
       setErrorMsg(err.message || 'An error occurred while saving rider details.');
     } finally {
@@ -132,7 +171,7 @@ export const RiderDetailsModal: React.FC<RiderDetailsModalProps> = ({
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-brand-orange" />
               <h3 className="text-lg font-black text-slate-900 font-heading">
-                Rider Details & Driving License
+                Rider Assignment & Verification
               </h3>
             </div>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -148,40 +187,61 @@ export const RiderDetailsModal: React.FC<RiderDetailsModalProps> = ({
         </div>
 
         {/* Smart KYC Rider Selection Toggle */}
-        <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-          <div className="text-xs font-bold text-slate-700">Who will ride this vehicle?</div>
-          <div className="flex gap-4 text-xs font-bold text-slate-800">
+        <div className="mb-5 p-4 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-3">
+          <div className="text-xs font-black text-navy-950 uppercase tracking-wider">
+            Who will ride this vehicle?
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-xs font-extrabold">
             <button
               type="button"
-              onClick={async () => {
-                try {
-                  const res = await fetch('/api/customer/profile');
-                  const data = await res.json();
-                  if (data?.profile) {
-                    setFullName(data.profile.name || '');
-                    setDlNumber(data.profile.drivingLicenseNumberMasked || 'UK0720210098765');
-                    setSuccessMsg('✓ Verified Profile KYC Auto-Filled (No DL Upload Required)');
-                  }
-                } catch (e) {}
-              }}
-              className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center gap-1 shadow-sm"
+              onClick={() => handleRiderSelectionChange('ME')}
+              className={`p-3 rounded-xl border flex items-center gap-2 transition-all ${
+                riderSelection === 'ME'
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-md'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+              }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Use My Verified Profile (Me)</span>
+              <UserCheck className="w-4 h-4 shrink-0" />
+              <span>Me (My Profile)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleRiderSelectionChange('SOMEONE_ELSE')}
+              className={`p-3 rounded-xl border flex items-center gap-2 transition-all ${
+                riderSelection === 'SOMEONE_ELSE'
+                  ? 'bg-navy-900 border-navy-900 text-white shadow-md'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <UserPlus className="w-4 h-4 shrink-0" />
+              <span>Someone Else</span>
             </button>
           </div>
+
+          {riderSelection === 'ME' && userProfile && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 font-semibold space-y-1">
+              <div className="font-extrabold flex items-center gap-1">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>Verified Customer Profile Auto-Filled</span>
+              </div>
+              <div className="text-[11px] text-emerald-800">
+                Rider: <span className="font-bold">{userProfile.name}</span> | DL: <span className="font-mono font-bold">{userProfile.drivingLicenseNumberMasked || 'VERIFIED'}</span> | Status: <span className="font-bold text-emerald-700">VERIFIED</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Error / Success Notifications */}
         {errorMsg && (
-          <div className="p-3 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+          <div className="p-3 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 font-bold">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
+          <div className="p-3 mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2 font-bold">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{successMsg}</span>
           </div>
@@ -191,7 +251,7 @@ export const RiderDetailsModal: React.FC<RiderDetailsModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-extrabold text-slate-700 mb-1">
-              Rider Full Name *
+              Rider Full Legal Name *
             </label>
             <div className="relative">
               <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -223,32 +283,34 @@ export const RiderDetailsModal: React.FC<RiderDetailsModalProps> = ({
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-extrabold text-slate-700 mb-1">
-              Upload Driving License (JPG, PNG, PDF &le; 5MB) *
-            </label>
-            <div className="border-2 border-dashed border-slate-200 rounded-2xl p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors text-center">
-              <input
-                type="file"
-                id="dlFileInput"
-                accept=".jpg,.jpeg,.png,.pdf"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <label
-                htmlFor="dlFileInput"
-                className="cursor-pointer flex flex-col items-center justify-center gap-1.5"
-              >
-                <Upload className="w-6 h-6 text-brand-orange" />
-                <span className="text-xs font-bold text-slate-700">
-                  {selectedFile ? selectedFile.name : 'Click to select DL document'}
-                </span>
-                <span className="text-[10px] text-slate-400">
-                  {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : 'Supported: JPG, PNG, PDF up to 5MB'}
-                </span>
+          {riderSelection === 'SOMEONE_ELSE' && (
+            <div>
+              <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                Upload Rider Driving License Document (JPG, PNG, WEBP, PDF &le; 5MB) *
               </label>
+              <div className="border-2 border-dashed border-slate-200 rounded-2xl p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors text-center">
+                <input
+                  type="file"
+                  id="dlFileInput"
+                  accept=".jpg,.jpeg,.png,.webp,.pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="dlFileInput"
+                  className="cursor-pointer flex flex-col items-center justify-center gap-1.5"
+                >
+                  <Upload className="w-6 h-6 text-brand-orange" />
+                  <span className="text-xs font-bold text-slate-700">
+                    {selectedFile ? selectedFile.name : 'Click to upload DL document'}
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : 'Supported: JPG, PNG, WEBP, PDF up to 5MB'}
+                  </span>
+                </label>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="pt-2 flex justify-end gap-2">
             <button
@@ -263,7 +325,7 @@ export const RiderDetailsModal: React.FC<RiderDetailsModalProps> = ({
               disabled={isUploading}
               className="px-5 py-2.5 rounded-xl bg-brand-orange text-white text-xs font-black hover:bg-brand-orange/90 shadow-md shadow-brand-orange/20 disabled:opacity-50 flex items-center gap-2"
             >
-              {isUploading ? 'Saving...' : 'Save & Verify Rider'}
+              {isUploading ? 'Saving...' : 'Save & Assign Rider'}
             </button>
           </div>
         </form>

@@ -263,7 +263,7 @@ async function runGroupBookingAvailabilityTestSuite() {
       isVerified: true,
     });
     await Booking.create({
-      bookingNumber: 'RS-TEST-CANCELLED-001',
+      bookingNumber: 'RS-TEST-CANCELLED-' + Math.floor(100000 + Math.random() * 900000),
       customerId: new mongoose.Types.ObjectId(otherCustomerId),
       vehicleId: cancelledVehicle._id,
       vendorId,

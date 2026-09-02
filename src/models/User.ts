@@ -23,6 +23,8 @@ export interface IUser extends Document {
   drivingLicenseStatus: KYCStatus;
   drivingLicenseNumber?: string;
   drivingLicenseExpiry?: Date;
+  aadhaarStatus?: KYCStatus;
+  aadhaarNumberMasked?: string;
   emailVerified: boolean;
   phoneVerified: boolean;
   googleId?: string;
@@ -30,6 +32,7 @@ export interface IUser extends Document {
   googleProfileImage?: string;
   authProviders?: AuthProviderType[];
   dateOfBirth?: Date;
+  gender?: string;
   emergencyContact?: {
     name: string;
     phone: string;
@@ -71,6 +74,12 @@ const UserSchema = new Schema<IUser>(
     },
     drivingLicenseNumber: { type: String, default: '' },
     drivingLicenseExpiry: { type: Date },
+    aadhaarStatus: {
+      type: String,
+      enum: ['NOT_STARTED', 'UNDER_REVIEW', 'VERIFIED', 'REJECTED', 'ACTION_REQUIRED', 'PENDING'],
+      default: 'NOT_STARTED',
+    },
+    aadhaarNumberMasked: { type: String, default: '' },
     emailVerified: { type: Boolean, default: false },
     phoneVerified: { type: Boolean, default: false },
     googleId: { type: String, index: true, sparse: true },
@@ -78,6 +87,7 @@ const UserSchema = new Schema<IUser>(
     googleProfileImage: { type: String, default: '' },
     authProviders: [{ type: String, enum: ['PASSWORD', 'GOOGLE', 'OTP'] }],
     dateOfBirth: { type: Date },
+    gender: { type: String, default: '' },
     emergencyContact: {
       name: { type: String, default: '' },
       phone: { type: String, default: '' },

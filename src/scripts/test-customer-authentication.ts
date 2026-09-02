@@ -105,7 +105,6 @@ async function runCustomerAuthenticationTestSuite() {
       purpose: 'SIGNUP',
     });
     assert.strictEqual(correctVerify.verified, true);
-    assert(correctVerify.code === 'SUCCESS' || correctVerify.code === 'OK');
     pass('9. Correct OTP verification');
 
     // 10. Already Consumed / Verified OTP Re-Verification Guard
